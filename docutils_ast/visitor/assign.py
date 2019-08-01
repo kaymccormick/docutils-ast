@@ -6,6 +6,7 @@ import astpretty
 from stringcase import camelcase
 import logging
 import builtins
+from docutils_ast.model import Class, ClassProperty
 
 def comments_for(node):
     return []
@@ -28,8 +29,20 @@ class ValueCollector(ast.NodeVisitor):
     stack = None
     in_stmt = False
     do_camelcase = True
-    def __init__(self, name, enabled=False, do_camelcase=True):
-        self.logger = logging.getLogger('assign')
+    
+    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None):
+        self.logger = logging.getLogger(name)
+        self.parent = parent
+        if parent is not None:
+            self.major_element = parent.major_element
+            self.current_namespace = parent.current_namespace
+            self.module = parent.module
+        else:
+            self.major_element = module
+            self.current_namespace = module
+            self.module = module
+        self.top_level= top_level
+        self.logger.error('constructing ValueCollector %s%s' % (name, 'TopLevel' if top_level else ''))
         self.var_scope = { }
         self.body = []
         self.stack= []
@@ -44,8 +57,8 @@ class ValueCollector(ast.NodeVisitor):
 
     def generic_visit(self,  node, callSuper=True, newStack=False):
         if self.enabled:
-            self.logger.debug('%s', node.__class__.__name__)
             if self.main_node is None:
+                self.logger.debug('setting main node of %s', self.name)
                 self.main_node = node
                 self.main_collect_array = self.collect_array
                 self.main_collect_scalar = self.collect_scalar
@@ -70,7 +83,7 @@ class ValueCollector(ast.NodeVisitor):
         oldEnabled = self.enabled
         self.enabled = True
 
-        vvc = ValueCollector('assign.value', True)
+        vvc = ValueCollector('assign.value', True, parent=self)
         vvc.visit(node.value)
         try:
             v = vvc.collected_value
@@ -79,7 +92,7 @@ class ValueCollector(ast.NodeVisitor):
                           'elements': vvc.collected_value }
             elif vvc.main_collect_scalar:
                 if len(v) == 0:
-                    self.logger.error('%s', astpretty.pformat(node.value))
+                    self.logger.error('zz: %s', astpretty.pformat(node.value))
                     exit(1)
                     
                 value = v[0]
@@ -102,7 +115,7 @@ class ValueCollector(ast.NodeVisitor):
         target_nodes = []
         while len(t):
             target = t.pop(0)
-            tc = ValueCollector('target', True)
+            tc = ValueCollector('target', True, parent=self)
             tc.visit(target)
             val = tc.collected_value[0]
             new_var = False
@@ -150,7 +163,6 @@ class ValueCollector(ast.NodeVisitor):
                 stmt = var_decl
             else:
                 stmt = { 'type': 'ExpressionStatement', 'expression': right }
-            self.logger.error('z: %r', stmt)
             self.body.append(stmt)
 #        self.disable_perm = True
         self.enabled = oldEnabled
@@ -217,20 +229,34 @@ class ValueCollector(ast.NodeVisitor):
             self.generic_visit(node)
             return
 
-        v = ValueCollector('attribute.value', True)
-        v.visit(node.value)
-        object = v.collected_value[0]
-
-
-        id_name = camelcase(node.attr) if self.do_camelcase and not re.match('__', node.attr) else node.attr
-        expr = { 'type': 'MemberExpression',
-                 'object': object,
-                 'property': { 'type': 'Identifier', 'name': id_name },
-                 'comments': comments_for(node) }
-        self.append_to.append(expr)
-        self.collect_scalar = True
-        self.generic_visit(node, False)
-
+        try:
+            v = ValueCollector('attribute.value', True, parent=self)
+            v.visit(node.value)
+            object = v.collected_value[0]
+            id_name = camelcase(node.attr) if self.do_camelcase and not re.match('__', node.attr) else node.attr
+            if object['type'] == 'ThisExpression':
+                # do we endure we are 'in' a class?
+                assert isinstance(self.major_element, Class), 'major element should be class'
+                if not self.current_namespace.name_exists(id_name):
+                    prop = ClassProperty(self.major_element, id_name)
+                    self.logger.error('%r', prop)
+                    self.major_element.add(prop)
+                    self.logger.error('%r', self.major_element)
+                    self.current_namespace.store_name(id_name, prop)
+    
+            expr = { 'type': 'MemberExpression',
+                     'object': object,
+                     'property': { 'type': 'Identifier', 'name': id_name },
+                     'comments': comments_for(node) }
+            self.append_to.append(expr)
+            self.collect_scalar = True
+            self.generic_visit(node, False)
+        except Exception as ex:
+            self.logger.error('major element is %r', self.major_element)
+            self.logger.error(ex)
+            self.logger.error(astpretty.pformat(node))
+            exit(20)
+            
     def visit_UnaryOp(self, node):
         if not self.enabled:
             self.generic_visit(node)
@@ -255,7 +281,7 @@ class ValueCollector(ast.NodeVisitor):
         if not self.enabled:
             self.generic_visit(node)
             return
-        v = ValueCollector('', True)
+        v = ValueCollector('', True, parent=self)
         v.visit(node.test)
         if not v.main_collect_scalar:
             self.logger.error('%s', astpretty.pformat(node.test))
@@ -265,14 +291,14 @@ class ValueCollector(ast.NodeVisitor):
 
         body= []
         for stmt in node.body:
-            v2 = ValueCollector('', True)
+            v2 = ValueCollector('', True, parent=self)
             
             v2.visit(stmt)
             body.extend(v2.body)
 
         orelse= []
         for stmt in node.orelse:
-            v3 = ValueCollector('', True)
+            v3 = ValueCollector('', True, parent=self)
             v3.visit(stmt)
             orelse.extend(v3.body)
 
@@ -288,7 +314,7 @@ class ValueCollector(ast.NodeVisitor):
             return
         vals = []
         for value in node.values:
-            vc = ValueCollector('boolop.value', True)
+            vc = ValueCollector('boolop.value', True, parent=self)
             vc.visit(value)
             if not vc.main_collect_scalar:
                 print('x:', astpretty.pformat(value))
@@ -317,14 +343,14 @@ class ValueCollector(ast.NodeVisitor):
         if not self.enabled:
             self.generic_visit(node)
             return
-        v = ValueCollector("left binop", True)
+        v = ValueCollector("left binop", True, parent=self)
         v.visit(node.left)
         if v.main_collect_array:
             left = { 'type': 'ArrayExpression', 'elements': v.collected_value }
         else:
             left = v.collected_value[0]
 
-        v2 = ValueCollector("right binop", True)
+        v2 = ValueCollector("right binop", True, parent=self)
         v2.visit(node.right)
         if v2.main_collect_array:
             right = { 'type': 'ArrayExpression', 'elements': v2.collected_value }
@@ -368,13 +394,13 @@ class ValueCollector(ast.NodeVisitor):
         keys = []
         values = []
         for key in node.keys:
-            kc = ValueCollector('key', True)
+            kc = ValueCollector('key', True, parent=self)
             kc.visit(key)
             assert kc.main_collect_scalar, 'scalar 2'
             key2 = kc.collected_value[0]
             keys.append(key2)
         for value in node.values:
-            vc = ValueCollector('key', True)
+            vc = ValueCollector('key', True, parent=self)
             vc.visit(value)
             if not vc.main_collect_scalar:
                 print('x:', astpretty.pformat(value))
@@ -396,13 +422,13 @@ class ValueCollector(ast.NodeVisitor):
         if not self.enabled:
             self.generic_visit(node)
             return
-        func_c = ValueCollector('func', True)
+        func_c = ValueCollector('func', True, parent=self)
         func_c.visit(node.func)
         assert func_c.main_collect_scalar, 'func scalar'
         func = func_c.collected_value[0]
         args = []
         for arg in node.args:
-            arg_c = ValueCollector('arg', True)
+            arg_c = ValueCollector('arg', True, parent=self)
             arg_c.visit(arg)
             if arg_c.main_collect_array:
                 value = { 'type': 'ArrayExpression',
@@ -450,7 +476,7 @@ class ValueCollector(ast.NodeVisitor):
             self.generic_visit(node)
             return
         self.collect_scalar = True
-        vc = ValueCollector('value', True)
+        vc = ValueCollector('value', True, parent=self)
         vc.visit(node.value)
         assert vc.main_collect_scalar, 'scalar 4'
         argument = vc.collected_value[0]
@@ -463,14 +489,14 @@ class ValueCollector(ast.NodeVisitor):
             self.generic_visit(node)
             return
         self.collect_scalar = True
-        vc = ValueCollector('value', True)
+        vc = ValueCollector('value', True, parent=self)
         vc.visit(node.value)
         assert vc.main_collect_scalar, 'scalar 5'
         value = vc.collected_value[0]
 
         index = None
         if isinstance(node.slice, ast.Index):
-            vc5 = ValueCollector('value', True)
+            vc5 = ValueCollector('value', True, parent=self)
             vc5.visit(node.slice.value)
             if not vc5.main_collect_scalar:
                 print('zz', astpretty.pformat(node))
@@ -482,14 +508,14 @@ class ValueCollector(ast.NodeVisitor):
         elif isinstance(node.slice, ast.Slice):
             lower = {'type':'NumericLiteral', 'value': 0}
             if node.slice.lower is not None:
-                vc2 = ValueCollector('lower', True)
+                vc2 = ValueCollector('lower', True, parent=self)
                 vc2.visit(node.slice.lower)
                 assert vc2.main_collect_scalar, 'scalaf 6'
                 lower = vc2.collected_value[0]
 
             upper = None
             if node.slice.upper is not None:
-                vc3 = ValueCollector('upper', True)
+                vc3 = ValueCollector('upper', True, parent=self)
                 try:
                     vc3.visit(node.slice.upper)
                 except Exception as ex:
@@ -502,7 +528,7 @@ class ValueCollector(ast.NodeVisitor):
 
             step = None
             if node.slice.step is not None:
-                vc4 = ValueCollector('step', True)
+                vc4 = ValueCollector('step', True, parent=self)
                 vc4.visit(node.slice.step)
                 assert vc4.main_collect_scalar, 'scalar 9'
                 step = vc3.collected_value[0]
@@ -550,6 +576,8 @@ class ValueCollector(ast.NodeVisitor):
         negate = False
         if isinstance(op, (ast.Eq, ast.Is)):
             operator = '==='
+        elif isinstance(op, (ast.NotEq, ast.IsNot)):
+            operator = '!=='
         elif isinstance(op, (ast.In)):
             operator = 'in'
         elif isinstance(op, (ast.Gt)):
@@ -558,6 +586,8 @@ class ValueCollector(ast.NodeVisitor):
             operator = '<'
         elif isinstance(op, (ast.LtE)):
             operator = '<='
+        elif isinstance(op, (ast.GtE)):
+            operator = '>='
         elif isinstance(op, (ast.NotEq)):
             operator = '!=='
         elif isinstance(op, (ast.NotIn)):
@@ -568,14 +598,14 @@ class ValueCollector(ast.NodeVisitor):
             exit(2)
         
         comparator = node.comparators[0]
-        v = ValueCollector("compator", True)
+        v = ValueCollector("compator", True, parent=self)
         v.visit(comparator)
         if v.main_collect_array:
             comparator = { 'type': 'ArrayExpression', 'elements': v.collected_value }
         else:
             comparator = v.collected_value[0]
 
-        v2 = ValueCollector("left", True)
+        v2 = ValueCollector("left", True, parent=self)
         v2.visit(node.left)
         if v2.main_collect_array:
             left = { 'type': 'ArrayExpression', 'elements': v2.collected_value }
@@ -592,8 +622,11 @@ class ValueCollector(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         assert isinstance(node.args, ast.arguments), 'args'
         args = []
+        i = 0
         for arg in node.args.args:
-            v = ValueCollector('functiondef', True)
+            v = ValueCollector('functionDef(%s, arg[%d])' % (node.name, i),
+                               True, parent=self)
+            i += 1
             v.visit(arg)
             if not v.main_collect_scalar:
                 print('x:', astpretty.pformat(arg))
@@ -612,10 +645,12 @@ class ValueCollector(ast.NodeVisitor):
                  'body': { 'type': 'BlockStatement', 'body': self.result} }
         if self.in_class_def:
             expr['params'] = args[1:]
-            expr['type'] = 'MethodDefinition'
+            expr['type'] = 'TSDeclareMethod'
+            expr['access'] = 'public'
             if node.name == "__init__":
                 expr['kind'] = 'constructor'
                 expr['key'] = { 'type': 'Identifier', 'name': 'constructor' }
+                
             else:
                 expr['kind'] ='method'
                 expr['key'] = { 'type': 'Identifier', 'name': node.name }
@@ -630,7 +665,16 @@ class ValueCollector(ast.NodeVisitor):
             self.generic_visit(node)
             return
         self.collect_scalar = True
-        expr = { 'type': 'Identifier', 'name': node.arg, 'comments': comments_for(node) }
+        expr = { 'type': 'Identifier',
+                 'name': node.arg,
+                 'comments': comments_for(node) }
+        if node.annotation:
+            if isinstance(node.annotation, ast.Name):
+                anno_type = node.annotation.id;
+                if anno_type == 'str':
+                    annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
+                    expr['typeAnnotation'] = annotation
+
         self.append_to.append(expr)
         self.generic_visit(node, False)
 
@@ -639,13 +683,26 @@ class ValueCollector(ast.NodeVisitor):
         assert not self.in_class_def
         self.in_class_def = True
         self.enabled = True
+
+        expr = { 'type': 'ClassDeclaration',
+                 'id': { 'type': 'Identifier', 'name': node.name }}
+        
+        assert not self.current_namespace.name_exists(node.name)
+        class_ = Class(node.name, node=expr)
+        self.current_namespace.store_name(node.name, class_)
+        self.major_element = class_
+
         self.generic_visit(node, True, True)
         self.enabled = oldEnabled
-        #assert len(node.bases) in (0, 1)
-        expr = { 'type': 'ClassDeclaration', 'id': { 'type': 'Identifier', 'name': node.name }, 'body': { 'type': 'ClassBody', 'body': self.result } }
+
+        body = self.result
+        for elem in class_.elems:
+            body.insert(0, elem.ast_node())
+
+        expr['body'] = { 'type': 'ClassBody', 'body': body }
         if len(node.bases):
             base = node.bases[0]
-            v = ValueCollector('', True, do_camelcase=False)
+            v = ValueCollector('', True, do_camelcase=False, parent=self)
             v.visit(base)
             assert v.main_collect_scalar
             b = v.collected_value[0]
@@ -666,15 +723,23 @@ class ValueCollector(ast.NodeVisitor):
         self.enabled = oldEnabled
 
     def visit_Return(self, node):
-        oldEnabled = self.enabled
-        self.enabled = True
-        self.context.append(self.append_to)
-        self.append_to = []
-        self.generic_visit(node, True)
-        expr = { 'type': 'ReturnStatement', 'argument': self.append_to[0] }
-        self.append_to = self.context.pop()
-        self.body.append(expr)
-        self.enabled = oldEnabled
+        try:
+            oldEnabled = self.enabled
+            self.enabled = True
+            self.context.append(self.append_to)
+            self.append_to = []
+            self.generic_visit(node, True)
+            expr = { 'type': 'ReturnStatement' }
+            if len(self.append_to):
+                expr['argument'] = self.append_to[0]
+            self.append_to = self.context.pop()
+            self.body.append(expr)
+            self.enabled = oldEnabled
+        except Exception as ex:
+            self.logger.error('major element is %r', self.major_element)
+            self.logger.error(ex)
+            self.logger.error(astpretty.pformat(node))
+            exit(21)
 
     def find_var(self, node):
         assert node['type'] == 'Identifier'
