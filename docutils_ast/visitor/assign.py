@@ -1,7 +1,6 @@
 import re
 import ast
 import sys
-from docutils import nodes
 import json
 import astpretty
 from stringcase import camelcase
@@ -99,30 +98,60 @@ class ValueCollector(ast.NodeVisitor):
             annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
                 
         self.logger.error("%r", right)
+        var_decls = []
+        target_nodes = []
         while len(t):
             target = t.pop(0)
             tc = ValueCollector('target', True)
             tc.visit(target)
             val = tc.collected_value[0]
+            new_var = False
             if val['type'] == 'Identifier':
                 n = val['name']
                 self.logger.error('name is %s', n)
                 var = self.find_var(val)
                 if var is None:
+                    new_var = True
                     self.logger.error('here')
                     self.register_var(val)
                     if annotation is not None:
                         val['typeAnnotation'] = annotation;
                     val = { 'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': val }], 'kind': 'let' }
+                    var_decls.append(val);
+            if not new_var:
+                target_nodes.append(val)
 
-            left = val
-            right = { 'type': 'AssignmentExpression',
-                     'operator': '=',
-                     'left': left,
-                     'right': right,
-                     }
-        stmt = { 'type': 'ExpressionStatement', 'expression': right }
-        self.body.append(stmt)
+        self.logger.error('%r', target_nodes)
+        if len(var_decls) > 1:
+            tmp_var_name = '_tmp1';
+            tmp_var = { 'type': 'Identifier', 'name': tmp_var_name }
+            self.body.append({'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': tmp_var, 'init': right }], 'kind': 'const'})
+            for var_decl in var_decls:
+                var_decl['declarations'][0]['init'] = tmp_var
+                self.body.append(var_decl)
+        else:
+            first = True
+            var_decl = None
+            if len(var_decls) == 1:
+                var_decl = var_decls[0]
+
+            while len(target_nodes):
+                left = target_nodes.pop()
+                if var_decl is not None:
+                    var_decl['declarations'][0]['init'] = right
+
+                right = { 'type': 'AssignmentExpression',
+                          'operator': '=',
+                          'left': left,
+                          'right': right
+                          }
+            if var_decl is not None:
+                var_decl['declarations'][0]['init'] = right
+                stmt = var_decl
+            else:
+                stmt = { 'type': 'ExpressionStatement', 'expression': right }
+            self.logger.error('z: %r', stmt)
+            self.body.append(stmt)
 #        self.disable_perm = True
         self.enabled = oldEnabled
 
