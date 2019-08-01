@@ -33,6 +33,7 @@ class ValueCollector(ast.NodeVisitor):
     def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None):
         self.logger = logging.getLogger(name)
         self.parent = parent
+        self.namespaces = []
         if parent is not None:
             self.major_element = parent.major_element
             self.current_namespace = parent.current_namespace
@@ -42,7 +43,7 @@ class ValueCollector(ast.NodeVisitor):
             self.current_namespace = module
             self.module = module
         self.top_level= top_level
-        self.logger.error('constructing ValueCollector %s%s' % (name, 'TopLevel' if top_level else ''))
+        self.logger.debug('constructing ValueCollector %s%s' % (name, 'TopLevel' if top_level else ''))
         self.var_scope = { }
         self.body = []
         self.stack= []
@@ -91,17 +92,18 @@ class ValueCollector(ast.NodeVisitor):
                 value = { 'type': 'ArrayExpression',
                           'elements': vvc.collected_value }
             elif vvc.main_collect_scalar:
-                if len(v) == 0:
-                    self.logger.error('zz: %s', astpretty.pformat(node.value))
-                    exit(1)
-                    
                 value = v[0]
             else:
                 self.logger.error('%s', astpretty.pformat(node.value))
                 exit(4)
 
         except Exception as ex:
-            raise ex;
+            self.logger.error('%r', v)
+            self.logger.error('major element is %r', self.major_element)
+            self.logger.error(ex)
+            self.logger.error(astpretty.pformat(node))
+            exit(22)
+
         
         self.append_to = []
         self.generic_visit(node, False)
@@ -110,7 +112,6 @@ class ValueCollector(ast.NodeVisitor):
         if right['type'] == 'StringLiteral':
             annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
                 
-        self.logger.error("%r", right)
         var_decls = []
         target_nodes = []
         while len(t):
@@ -121,11 +122,9 @@ class ValueCollector(ast.NodeVisitor):
             new_var = False
             if val['type'] == 'Identifier':
                 n = val['name']
-                self.logger.error('name is %s', n)
                 var = self.find_var(val)
                 if var is None:
                     new_var = True
-                    self.logger.error('here')
                     self.register_var(val)
                     if annotation is not None:
                         val['typeAnnotation'] = annotation;
@@ -134,11 +133,14 @@ class ValueCollector(ast.NodeVisitor):
             if not new_var:
                 target_nodes.append(val)
 
-        self.logger.error('%r', target_nodes)
         if len(var_decls) > 1:
             tmp_var_name = '_tmp1';
             tmp_var = { 'type': 'Identifier', 'name': tmp_var_name }
-            self.body.append({'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': tmp_var, 'init': right }], 'kind': 'const'})
+            self.body.append({'type': 'VariableDeclaration',
+                              'declarations': [
+                                  {'type': 'VariableDeclarator',
+                                   'id': tmp_var, 'init': right }],
+                              'kind': 'const'})
             for var_decl in var_decls:
                 var_decl['declarations'][0]['init'] = tmp_var
                 self.body.append(var_decl)
@@ -173,7 +175,7 @@ class ValueCollector(ast.NodeVisitor):
 
         self.context.append(self.append_to)
         self.append_to = []
-        self.collect_scalar = True
+        self.collect_array = True
         self.generic_visit(node)
         expr = { "type": 'CallExpression', 'callee': { 'type': 'Identifier', 'name': 'Tuple'}, 'arguments': self.append_to, 'comments': comments_for(node) }
 
@@ -239,9 +241,7 @@ class ValueCollector(ast.NodeVisitor):
                 assert isinstance(self.major_element, Class), 'major element should be class'
                 if not self.current_namespace.name_exists(id_name):
                     prop = ClassProperty(self.major_element, id_name)
-                    self.logger.error('%r', prop)
                     self.major_element.add(prop)
-                    self.logger.error('%r', self.major_element)
                     self.current_namespace.store_name(id_name, prop)
     
             expr = { 'type': 'MemberExpression',
@@ -252,6 +252,7 @@ class ValueCollector(ast.NodeVisitor):
             self.collect_scalar = True
             self.generic_visit(node, False)
         except Exception as ex:
+            raise ex
             self.logger.error('major element is %r', self.major_element)
             self.logger.error(ex)
             self.logger.error(astpretty.pformat(node))
@@ -362,6 +363,8 @@ class ValueCollector(ast.NodeVisitor):
             operator = '+'
         if isinstance(node.op, ast.Sub):
             operator = '-'
+        if isinstance(node.op, ast.Mult):
+            operator = '*'
         if operator is not None:
             expr = { 'type': 'BinaryExpression', 'operator': operator, 'left': left, 'right': right, 'comments': comments_for(node) }
         else:
@@ -444,7 +447,7 @@ class ValueCollector(ast.NodeVisitor):
             if func['type'] == 'Identifier':
                 funcName = func['name']
                 if builtins.__dict__[funcName]:
-                    self.logger.info('found builtin %s', funcName)
+                    self.logger.debug('found builtin %s', funcName)
             
                 if funcName == "len":
                     assert len(args) == 1
@@ -657,7 +660,6 @@ class ValueCollector(ast.NodeVisitor):
         else:
             expr['name'] = node.name
 
-        self.logger.info('%s' % astpretty.pformat(node).replace('\n', '  '))
         self.body.append(expr)
 
     def visit_arg(self, node):
@@ -679,38 +681,46 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, False)
 
     def visit_ClassDef(self, node):
-        oldEnabled = self.enabled
-        assert not self.in_class_def
-        self.in_class_def = True
-        self.enabled = True
+        try:
+            oldEnabled = self.enabled
+            assert not self.in_class_def
+            self.in_class_def = True
+            self.enabled = True
+    
+            expr = { 'type': 'ClassDeclaration',
+                     'id': { 'type': 'Identifier', 'name': node.name }}
 
-        expr = { 'type': 'ClassDeclaration',
-                 'id': { 'type': 'Identifier', 'name': node.name }}
-        
-        assert not self.current_namespace.name_exists(node.name)
-        class_ = Class(node.name, node=expr)
-        self.current_namespace.store_name(node.name, class_)
-        self.major_element = class_
-
-        self.generic_visit(node, True, True)
-        self.enabled = oldEnabled
-
-        body = self.result
-        for elem in class_.elems:
-            body.insert(0, elem.ast_node())
-
-        expr['body'] = { 'type': 'ClassBody', 'body': body }
-        if len(node.bases):
-            base = node.bases[0]
-            v = ValueCollector('', True, do_camelcase=False, parent=self)
-            v.visit(base)
-            assert v.main_collect_scalar
-            b = v.collected_value[0]
-            expr['superClass'] = b
-
-        self.in_class_def = False
-        self.body.append(expr)
-
+            self.logger.error('class %s',node.name)
+            assert not self.current_namespace.name_exists(node.name), 'name %s exists in scope' % node.name
+            class_ = Class(node.name, node=expr)
+            self.current_namespace.store_name(node.name, class_)
+            self.major_element = class_
+            self.namespaces.append(self.current_namespace)
+            self.current_namespace = class_
+            self.generic_visit(node, True, True)
+            self.current_namespace = self.namespaces.pop()
+            self.enabled = oldEnabled
+    
+            body = self.result
+            for elem in class_.elems:
+                body.insert(0, elem.ast_node())
+    
+            expr['body'] = { 'type': 'ClassBody', 'body': body }
+            if len(node.bases):
+                base = node.bases[0]
+                v = ValueCollector('', True, do_camelcase=False, parent=self)
+                v.visit(base)
+                assert v.main_collect_scalar
+                b = v.collected_value[0]
+                expr['superClass'] = b
+    
+            self.in_class_def = False
+            self.body.append(expr)
+        except Exception as ex:
+            self.logger.error('major element is %r', self.major_element)
+            raise ex
+            exit(23)
+    
     def visit_Expr(self, node):
         oldEnabled = self.enabled
         self.enabled = True
@@ -736,6 +746,7 @@ class ValueCollector(ast.NodeVisitor):
             self.body.append(expr)
             self.enabled = oldEnabled
         except Exception as ex:
+            raise ex
             self.logger.error('major element is %r', self.major_element)
             self.logger.error(ex)
             self.logger.error(astpretty.pformat(node))
