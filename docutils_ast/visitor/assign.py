@@ -6,7 +6,7 @@ import astpretty
 from stringcase import camelcase
 import logging
 import builtins
-from docutils_ast.model import Class, ClassProperty
+from docutils_ast.model import Class, ClassProperty, Value, ASTValue
 from docutils_ast.logging import CustomAdapter, StructuredMessage
 _ = StructuredMessage
 from ast import AST
@@ -48,8 +48,9 @@ class ValueCollector(ast.NodeVisitor):
     value_index = [-1]
     cur_values = []
     cur_out_nodes = None
+    out_values = []
     
-    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None, logger=None):
+    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None, logger=None, sym_table=None, kinds=None, named_types=None):
         if not logger and parent:
             logger_ = parent._logger
         else:
@@ -69,11 +70,18 @@ class ValueCollector(ast.NodeVisitor):
             self.in_nodes[:] = parent.in_nodes[:]
             self.collector_level = parent.collector_level + 1
             self.level = parent.level
+            self.sym_table = parent.sym_table
+            self.kinds = parent.kinds
+            self.named_types = parent.named_types
         else:
             self.major_element = module
             self.current_namespace = module
             self.module = module
             self.graph_file = graph_file
+            self.sym_table = sym_table
+            self.kinds = kinds
+            self.named_types = named_types
+            
         self.top_level= top_level
         self.logger.debug(_('initializing ValueCollector'))
         self.var_scope = { }
@@ -120,7 +128,10 @@ class ValueCollector(ast.NodeVisitor):
                     self.value_index.append(None)
                     self.visit(value)
                     self.value_index.pop()
+                else:
+                    self.cur_values[-1][field] = value
                 self.cur_fields.pop()
+            self.out_values.append(self.cur_values.pop())
     
         self.in_nodes.pop()
         if newStack:
@@ -132,9 +143,18 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit(self, node):
         self.advance_level()
-        super().visit(node)
-        self.retreat_level()
+        try:
+            super().visit(node)
+        except Exception as ex:
+            self.logger.error(_(str(ex), type=ex.__class__.__name__, pretty=astpretty.pformat(node)))
+            exit(1)
             
+        self.retreat_level()
+
+    def visit_Import(self, node):
+        self.generic_visit(node)
+        values = self.cur_values[-1]
+        
     def visit_Assign(self, node):
         out_stmts = []
         self.logger.debug(_('visit_Assign', name=node.__class__.__name__, node_desc=node_repr(self.in_nodes[-1])))
@@ -172,10 +192,13 @@ class ValueCollector(ast.NodeVisitor):
         right = value
         annotation = None
         if right['type'] == 'StringLiteral':
-            annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
+            annotation = { 'type': 'TSTypeAnnotation',
+                           'typeAnnotation': { 'type':
+                                               'TSStringKeyword'} }
                 
         var_decls = []
         target_nodes = []
+        new_props = []
         while len(t):
             target = t.pop(0)
             tc = self.collect_node('target', target)
@@ -184,10 +207,12 @@ class ValueCollector(ast.NodeVisitor):
             if val['type'] == 'Identifier':
                 n = val['name']
                 if isinstance(self.in_nodes[-1], ast.ClassDef):
-                    prop = ClassProperty(self.major_element, n)
+                    # assignment is in class body, create property
+                    prop = ClassProperty(self.major_element, n, ASTValue(right))
                     self.logger.debug(_('adding class property %s' % n))
                     self.major_element.add(prop)
                     self.current_namespace.store_name(n, prop)
+                    new_props.append(prop)
                 else:
                     var = self.find_var(val)
                     if var is None:
@@ -306,37 +331,30 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node):
-        if not self.enabled:## or not isinstance(node.value, ast.Name) or not isinstance(node.value.ctx, ast.Load):
+        if not self.enabled:
             self.generic_visit(node)
             return
 
-        try:
-            v = ValueCollector('attribute.value', True, parent=self)
-            v.do_visit(node.value)
-            object = v.collected_value[0]
-            id_name = camelcase(node.attr) if self.do_camelcase and not re.match('__', node.attr) else node.attr
-            if object['type'] == 'ThisExpression':
-                # do we endure we are 'in' a class?
-                assert isinstance(self.major_element, Class), 'major element should be class'
-                if not self.current_namespace.name_exists(id_name):
-                    prop = ClassProperty(self.major_element, id_name)
-                    self.major_element.add(prop)
-                    self.current_namespace.store_name(id_name, prop)
-    
-            expr = { 'type': 'MemberExpression',
-                     'object': object,
-                     'property': { 'type': 'Identifier', 'name': id_name },
-                     'comments': comments_for(node) }
-            self.cur_node = expr
-            self.append_to.append(expr)
-            self.collect_scalar = True
-            self.generic_visit(node, False)
-        except Exception as ex:
-            raise ex
-            self.logger.error(_('major element is %r' % self.major_element))
-            self.logger.error(_(ex))
-            self.logger.error(_(astpretty.pformat(node)))
-            exit(20)
+        v = ValueCollector('attribute.value', True, parent=self)
+        v.do_visit(node.value)
+        object = v.collected_value[0]
+        id_name = camelcase(node.attr) if self.do_camelcase and not re.match('__', node.attr) else node.attr
+        if object['type'] == 'ThisExpression':
+            # do we endure we are 'in' a class?
+            assert isinstance(self.major_element, Class), 'major element should be class'
+            if not self.current_namespace.name_exists(id_name):
+                prop = ClassProperty(self.major_element, id_name)
+                self.major_element.add(prop)
+                self.current_namespace.store_name(id_name, prop)
+
+        expr = { 'type': 'MemberExpression',
+                 'object': object,
+                 'property': { 'type': 'Identifier', 'name': id_name },
+                 'comments': comments_for(node) }
+        self.cur_node = expr
+        self.append_to.append(expr)
+        self.collect_scalar = True
+        self.generic_visit(node, False)
             
     def visit_UnaryOp(self, node):
         if not self.enabled:
@@ -540,7 +558,7 @@ class ValueCollector(ast.NodeVisitor):
                              'left': args[0],
                              'right': args[1] }
                 elif funcName == "len":
-                    assert len(args) == 1
+                    assert len(args) == 1, 'length of args should be 1'
                     expr = { 'type': 'MemberExpression',
                              'object': args[0],
                              'property': {'type':'Identifier', 'name':'length'},

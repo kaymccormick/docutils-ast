@@ -3,6 +3,18 @@ import logging
 
 logger = logging.getLogger('model')
 
+class Value:
+    initialized = False
+    value = None
+    def __init__(self, *args):
+        if len(args) > 0:
+            self.value = args[0]
+            self.initialized = True
+    
+class ASTValue(Value):
+    def ast_node(self):
+        return self.value
+    
 class ModelElement:
     pass
 
@@ -49,8 +61,15 @@ class Module(Namespace):
         self.file= file
 
 class ClassProperty(NamedElement):
-    def __init__(self, class_: Class, name: str):
+    def __init__(self, class_: Class, name: str, value=None):
         self.class_ = class_
         self.name = name
+        self.value = value
     def ast_node(self):
-        return dict(type='ClassProperty', key=dict(type='Identifier',name=self.name), access='public', typeAnnotation=dict(type='TSTypeAnnotation', typeAnnotation=dict(type='TSAnyKeyword')))
+        d = dict(type='ClassProperty', key=dict(type='Identifier',name=self.name), access='public', typeAnnotation=dict(type='TSTypeAnnotation', typeAnnotation=dict(type='TSAnyKeyword')))
+        if self.value:
+            d['value'] = self.value.ast_node()
+        return d
+
+#class Import(ModelElement):
+#    def __init__(self, module: Module,
