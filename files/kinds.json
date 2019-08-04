@@ -1,0 +1,1566 @@
+{
+    "PrintableKind": [
+        "File",
+        "Program",
+        "Identifier",
+        "BlockStatement",
+        "EmptyStatement",
+        "ExpressionStatement",
+        "IfStatement",
+        "LabeledStatement",
+        "BreakStatement",
+        "ContinueStatement",
+        "WithStatement",
+        "SwitchStatement",
+        "SwitchCase",
+        "ReturnStatement",
+        "ThrowStatement",
+        "TryStatement",
+        "CatchClause",
+        "WhileStatement",
+        "DoWhileStatement",
+        "ForStatement",
+        "VariableDeclaration",
+        "ForInStatement",
+        "DebuggerStatement",
+        "FunctionDeclaration",
+        "FunctionExpression",
+        "VariableDeclarator",
+        "ThisExpression",
+        "ArrayExpression",
+        "ObjectExpression",
+        "Property",
+        "Literal",
+        "SequenceExpression",
+        "UnaryExpression",
+        "BinaryExpression",
+        "AssignmentExpression",
+        "MemberExpression",
+        "UpdateExpression",
+        "LogicalExpression",
+        "ConditionalExpression",
+        "NewExpression",
+        "CallExpression",
+        "RestElement",
+        "TypeAnnotation",
+        "TSTypeAnnotation",
+        "SpreadElementPattern",
+        "ArrowFunctionExpression",
+        "ForOfStatement",
+        "YieldExpression",
+        "GeneratorExpression",
+        "ComprehensionBlock",
+        "ComprehensionExpression",
+        "ObjectProperty",
+        "PropertyPattern",
+        "ObjectPattern",
+        "ArrayPattern",
+        "MethodDefinition",
+        "SpreadElement",
+        "AssignmentPattern",
+        "ClassPropertyDefinition",
+        "ClassProperty",
+        "ClassBody",
+        "ClassDeclaration",
+        "ClassExpression",
+        "ImportSpecifier",
+        "ImportNamespaceSpecifier",
+        "ImportDefaultSpecifier",
+        "ImportDeclaration",
+        "TaggedTemplateExpression",
+        "TemplateLiteral",
+        "TemplateElement",
+        "SpreadProperty",
+        "SpreadPropertyPattern",
+        "AwaitExpression",
+        "JSXAttribute",
+        "JSXIdentifier",
+        "JSXNamespacedName",
+        "JSXExpressionContainer",
+        "JSXMemberExpression",
+        "JSXSpreadAttribute",
+        "JSXElement",
+        "JSXOpeningElement",
+        "JSXClosingElement",
+        "JSXFragment",
+        "JSXText",
+        "JSXOpeningFragment",
+        "JSXClosingFragment",
+        "JSXEmptyExpression",
+        "JSXSpreadChild",
+        "TypeParameterDeclaration",
+        "TSTypeParameterDeclaration",
+        "TypeParameterInstantiation",
+        "TSTypeParameterInstantiation",
+        "ClassImplements",
+        "TSExpressionWithTypeArguments",
+        "AnyTypeAnnotation",
+        "EmptyTypeAnnotation",
+        "MixedTypeAnnotation",
+        "VoidTypeAnnotation",
+        "NumberTypeAnnotation",
+        "NumberLiteralTypeAnnotation",
+        "NumericLiteralTypeAnnotation",
+        "StringTypeAnnotation",
+        "StringLiteralTypeAnnotation",
+        "BooleanTypeAnnotation",
+        "BooleanLiteralTypeAnnotation",
+        "NullableTypeAnnotation",
+        "NullLiteralTypeAnnotation",
+        "NullTypeAnnotation",
+        "ThisTypeAnnotation",
+        "ExistsTypeAnnotation",
+        "ExistentialTypeParam",
+        "FunctionTypeAnnotation",
+        "FunctionTypeParam",
+        "ArrayTypeAnnotation",
+        "ObjectTypeAnnotation",
+        "ObjectTypeProperty",
+        "ObjectTypeSpreadProperty",
+        "ObjectTypeIndexer",
+        "ObjectTypeCallProperty",
+        "ObjectTypeInternalSlot",
+        "Variance",
+        "QualifiedTypeIdentifier",
+        "GenericTypeAnnotation",
+        "MemberTypeAnnotation",
+        "UnionTypeAnnotation",
+        "IntersectionTypeAnnotation",
+        "TypeofTypeAnnotation",
+        "TypeParameter",
+        "InterfaceTypeAnnotation",
+        "InterfaceExtends",
+        "InterfaceDeclaration",
+        "DeclareInterface",
+        "TypeAlias",
+        "OpaqueType",
+        "DeclareTypeAlias",
+        "DeclareOpaqueType",
+        "TypeCastExpression",
+        "TupleTypeAnnotation",
+        "DeclareVariable",
+        "DeclareFunction",
+        "DeclareClass",
+        "DeclareModule",
+        "DeclareModuleExports",
+        "DeclareExportDeclaration",
+        "ExportSpecifier",
+        "ExportBatchSpecifier",
+        "DeclareExportAllDeclaration",
+        "InferredPredicate",
+        "DeclaredPredicate",
+        "ExportDeclaration",
+        "Block",
+        "Line",
+        "Noop",
+        "DoExpression",
+        "Super",
+        "BindExpression",
+        "Decorator",
+        "MetaProperty",
+        "ParenthesizedExpression",
+        "ExportDefaultDeclaration",
+        "ExportNamedDeclaration",
+        "ExportNamespaceSpecifier",
+        "ExportDefaultSpecifier",
+        "ExportAllDeclaration",
+        "CommentBlock",
+        "CommentLine",
+        "Directive",
+        "DirectiveLiteral",
+        "InterpreterDirective",
+        "StringLiteral",
+        "NumericLiteral",
+        "BigIntLiteral",
+        "NullLiteral",
+        "BooleanLiteral",
+        "RegExpLiteral",
+        "ObjectMethod",
+        "ClassPrivateProperty",
+        "ClassMethod",
+        "ClassPrivateMethod",
+        "PrivateName",
+        "RestProperty",
+        "ForAwaitStatement",
+        "Import",
+        "TSQualifiedName",
+        "TSTypeReference",
+        "TSAsExpression",
+        "TSNonNullExpression",
+        "TSAnyKeyword",
+        "TSBigIntKeyword",
+        "TSBooleanKeyword",
+        "TSNeverKeyword",
+        "TSNullKeyword",
+        "TSNumberKeyword",
+        "TSObjectKeyword",
+        "TSStringKeyword",
+        "TSSymbolKeyword",
+        "TSUndefinedKeyword",
+        "TSUnknownKeyword",
+        "TSVoidKeyword",
+        "TSThisType",
+        "TSArrayType",
+        "TSLiteralType",
+        "TSUnionType",
+        "TSIntersectionType",
+        "TSConditionalType",
+        "TSInferType",
+        "TSTypeParameter",
+        "TSParenthesizedType",
+        "TSFunctionType",
+        "TSConstructorType",
+        "TSDeclareFunction",
+        "TSDeclareMethod",
+        "TSMappedType",
+        "TSTupleType",
+        "TSRestType",
+        "TSOptionalType",
+        "TSIndexedAccessType",
+        "TSTypeOperator",
+        "TSIndexSignature",
+        "TSPropertySignature",
+        "TSMethodSignature",
+        "TSTypePredicate",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration",
+        "TSEnumMember",
+        "TSTypeQuery",
+        "TSImportType",
+        "TSTypeLiteral",
+        "TSTypeAssertion",
+        "TSEnumDeclaration",
+        "TSTypeAliasDeclaration",
+        "TSModuleBlock",
+        "TSModuleDeclaration",
+        "TSImportEqualsDeclaration",
+        "TSExternalModuleReference",
+        "TSExportAssignment",
+        "TSNamespaceExportDeclaration",
+        "TSInterfaceBody",
+        "TSInterfaceDeclaration",
+        "TSParameterProperty",
+        "OptionalMemberExpression",
+        "OptionalCallExpression"
+    ],
+    "SourceLocationKind": "SourceLocation",
+    "NodeKind": [
+        "File",
+        "Program",
+        "Identifier",
+        "BlockStatement",
+        "EmptyStatement",
+        "ExpressionStatement",
+        "IfStatement",
+        "LabeledStatement",
+        "BreakStatement",
+        "ContinueStatement",
+        "WithStatement",
+        "SwitchStatement",
+        "SwitchCase",
+        "ReturnStatement",
+        "ThrowStatement",
+        "TryStatement",
+        "CatchClause",
+        "WhileStatement",
+        "DoWhileStatement",
+        "ForStatement",
+        "VariableDeclaration",
+        "ForInStatement",
+        "DebuggerStatement",
+        "FunctionDeclaration",
+        "FunctionExpression",
+        "VariableDeclarator",
+        "ThisExpression",
+        "ArrayExpression",
+        "ObjectExpression",
+        "Property",
+        "Literal",
+        "SequenceExpression",
+        "UnaryExpression",
+        "BinaryExpression",
+        "AssignmentExpression",
+        "MemberExpression",
+        "UpdateExpression",
+        "LogicalExpression",
+        "ConditionalExpression",
+        "NewExpression",
+        "CallExpression",
+        "RestElement",
+        "TypeAnnotation",
+        "TSTypeAnnotation",
+        "SpreadElementPattern",
+        "ArrowFunctionExpression",
+        "ForOfStatement",
+        "YieldExpression",
+        "GeneratorExpression",
+        "ComprehensionBlock",
+        "ComprehensionExpression",
+        "ObjectProperty",
+        "PropertyPattern",
+        "ObjectPattern",
+        "ArrayPattern",
+        "MethodDefinition",
+        "SpreadElement",
+        "AssignmentPattern",
+        "ClassPropertyDefinition",
+        "ClassProperty",
+        "ClassBody",
+        "ClassDeclaration",
+        "ClassExpression",
+        "ImportSpecifier",
+        "ImportNamespaceSpecifier",
+        "ImportDefaultSpecifier",
+        "ImportDeclaration",
+        "TaggedTemplateExpression",
+        "TemplateLiteral",
+        "TemplateElement",
+        "SpreadProperty",
+        "SpreadPropertyPattern",
+        "AwaitExpression",
+        "JSXAttribute",
+        "JSXIdentifier",
+        "JSXNamespacedName",
+        "JSXExpressionContainer",
+        "JSXMemberExpression",
+        "JSXSpreadAttribute",
+        "JSXElement",
+        "JSXOpeningElement",
+        "JSXClosingElement",
+        "JSXFragment",
+        "JSXText",
+        "JSXOpeningFragment",
+        "JSXClosingFragment",
+        "JSXEmptyExpression",
+        "JSXSpreadChild",
+        "TypeParameterDeclaration",
+        "TSTypeParameterDeclaration",
+        "TypeParameterInstantiation",
+        "TSTypeParameterInstantiation",
+        "ClassImplements",
+        "TSExpressionWithTypeArguments",
+        "AnyTypeAnnotation",
+        "EmptyTypeAnnotation",
+        "MixedTypeAnnotation",
+        "VoidTypeAnnotation",
+        "NumberTypeAnnotation",
+        "NumberLiteralTypeAnnotation",
+        "NumericLiteralTypeAnnotation",
+        "StringTypeAnnotation",
+        "StringLiteralTypeAnnotation",
+        "BooleanTypeAnnotation",
+        "BooleanLiteralTypeAnnotation",
+        "NullableTypeAnnotation",
+        "NullLiteralTypeAnnotation",
+        "NullTypeAnnotation",
+        "ThisTypeAnnotation",
+        "ExistsTypeAnnotation",
+        "ExistentialTypeParam",
+        "FunctionTypeAnnotation",
+        "FunctionTypeParam",
+        "ArrayTypeAnnotation",
+        "ObjectTypeAnnotation",
+        "ObjectTypeProperty",
+        "ObjectTypeSpreadProperty",
+        "ObjectTypeIndexer",
+        "ObjectTypeCallProperty",
+        "ObjectTypeInternalSlot",
+        "Variance",
+        "QualifiedTypeIdentifier",
+        "GenericTypeAnnotation",
+        "MemberTypeAnnotation",
+        "UnionTypeAnnotation",
+        "IntersectionTypeAnnotation",
+        "TypeofTypeAnnotation",
+        "TypeParameter",
+        "InterfaceTypeAnnotation",
+        "InterfaceExtends",
+        "InterfaceDeclaration",
+        "DeclareInterface",
+        "TypeAlias",
+        "OpaqueType",
+        "DeclareTypeAlias",
+        "DeclareOpaqueType",
+        "TypeCastExpression",
+        "TupleTypeAnnotation",
+        "DeclareVariable",
+        "DeclareFunction",
+        "DeclareClass",
+        "DeclareModule",
+        "DeclareModuleExports",
+        "DeclareExportDeclaration",
+        "ExportSpecifier",
+        "ExportBatchSpecifier",
+        "DeclareExportAllDeclaration",
+        "InferredPredicate",
+        "DeclaredPredicate",
+        "ExportDeclaration",
+        "Noop",
+        "DoExpression",
+        "Super",
+        "BindExpression",
+        "Decorator",
+        "MetaProperty",
+        "ParenthesizedExpression",
+        "ExportDefaultDeclaration",
+        "ExportNamedDeclaration",
+        "ExportNamespaceSpecifier",
+        "ExportDefaultSpecifier",
+        "ExportAllDeclaration",
+        "Directive",
+        "DirectiveLiteral",
+        "InterpreterDirective",
+        "StringLiteral",
+        "NumericLiteral",
+        "BigIntLiteral",
+        "NullLiteral",
+        "BooleanLiteral",
+        "RegExpLiteral",
+        "ObjectMethod",
+        "ClassPrivateProperty",
+        "ClassMethod",
+        "ClassPrivateMethod",
+        "PrivateName",
+        "RestProperty",
+        "ForAwaitStatement",
+        "Import",
+        "TSQualifiedName",
+        "TSTypeReference",
+        "TSAsExpression",
+        "TSNonNullExpression",
+        "TSAnyKeyword",
+        "TSBigIntKeyword",
+        "TSBooleanKeyword",
+        "TSNeverKeyword",
+        "TSNullKeyword",
+        "TSNumberKeyword",
+        "TSObjectKeyword",
+        "TSStringKeyword",
+        "TSSymbolKeyword",
+        "TSUndefinedKeyword",
+        "TSUnknownKeyword",
+        "TSVoidKeyword",
+        "TSThisType",
+        "TSArrayType",
+        "TSLiteralType",
+        "TSUnionType",
+        "TSIntersectionType",
+        "TSConditionalType",
+        "TSInferType",
+        "TSTypeParameter",
+        "TSParenthesizedType",
+        "TSFunctionType",
+        "TSConstructorType",
+        "TSDeclareFunction",
+        "TSDeclareMethod",
+        "TSMappedType",
+        "TSTupleType",
+        "TSRestType",
+        "TSOptionalType",
+        "TSIndexedAccessType",
+        "TSTypeOperator",
+        "TSIndexSignature",
+        "TSPropertySignature",
+        "TSMethodSignature",
+        "TSTypePredicate",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration",
+        "TSEnumMember",
+        "TSTypeQuery",
+        "TSImportType",
+        "TSTypeLiteral",
+        "TSTypeAssertion",
+        "TSEnumDeclaration",
+        "TSTypeAliasDeclaration",
+        "TSModuleBlock",
+        "TSModuleDeclaration",
+        "TSImportEqualsDeclaration",
+        "TSExternalModuleReference",
+        "TSExportAssignment",
+        "TSNamespaceExportDeclaration",
+        "TSInterfaceBody",
+        "TSInterfaceDeclaration",
+        "TSParameterProperty",
+        "OptionalMemberExpression",
+        "OptionalCallExpression"
+    ],
+    "CommentKind": [
+        "Block",
+        "Line",
+        "CommentBlock",
+        "CommentLine"
+    ],
+    "PositionKind": "Position",
+    "FileKind": [
+        "File"
+    ],
+    "ProgramKind": [
+        "Program"
+    ],
+    "StatementKind": [
+        "BlockStatement",
+        "EmptyStatement",
+        "ExpressionStatement",
+        "IfStatement",
+        "LabeledStatement",
+        "BreakStatement",
+        "ContinueStatement",
+        "WithStatement",
+        "SwitchStatement",
+        "ReturnStatement",
+        "ThrowStatement",
+        "TryStatement",
+        "WhileStatement",
+        "DoWhileStatement",
+        "ForStatement",
+        "VariableDeclaration",
+        "ForInStatement",
+        "DebuggerStatement",
+        "FunctionDeclaration",
+        "ForOfStatement",
+        "MethodDefinition",
+        "ClassPropertyDefinition",
+        "ClassProperty",
+        "ClassBody",
+        "ClassDeclaration",
+        "ImportDeclaration",
+        "TSTypeParameterDeclaration",
+        "InterfaceDeclaration",
+        "DeclareInterface",
+        "TypeAlias",
+        "OpaqueType",
+        "DeclareTypeAlias",
+        "DeclareOpaqueType",
+        "DeclareVariable",
+        "DeclareFunction",
+        "DeclareClass",
+        "DeclareModule",
+        "DeclareModuleExports",
+        "DeclareExportDeclaration",
+        "DeclareExportAllDeclaration",
+        "ExportDeclaration",
+        "Noop",
+        "ExportDefaultDeclaration",
+        "ExportNamedDeclaration",
+        "ExportAllDeclaration",
+        "ClassPrivateProperty",
+        "ClassMethod",
+        "ClassPrivateMethod",
+        "ForAwaitStatement",
+        "TSDeclareFunction",
+        "TSDeclareMethod",
+        "TSIndexSignature",
+        "TSPropertySignature",
+        "TSMethodSignature",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration",
+        "TSEnumDeclaration",
+        "TSTypeAliasDeclaration",
+        "TSModuleDeclaration",
+        "TSImportEqualsDeclaration",
+        "TSExternalModuleReference",
+        "TSExportAssignment",
+        "TSNamespaceExportDeclaration",
+        "TSInterfaceDeclaration"
+    ],
+    "FunctionKind": [
+        "FunctionDeclaration",
+        "FunctionExpression",
+        "ArrowFunctionExpression",
+        "ObjectMethod",
+        "ClassMethod",
+        "ClassPrivateMethod"
+    ],
+    "ExpressionKind": [
+        "Identifier",
+        "FunctionExpression",
+        "ThisExpression",
+        "ArrayExpression",
+        "ObjectExpression",
+        "Literal",
+        "SequenceExpression",
+        "UnaryExpression",
+        "BinaryExpression",
+        "AssignmentExpression",
+        "MemberExpression",
+        "UpdateExpression",
+        "LogicalExpression",
+        "ConditionalExpression",
+        "NewExpression",
+        "CallExpression",
+        "ArrowFunctionExpression",
+        "YieldExpression",
+        "GeneratorExpression",
+        "ComprehensionExpression",
+        "ClassExpression",
+        "TaggedTemplateExpression",
+        "TemplateLiteral",
+        "AwaitExpression",
+        "JSXIdentifier",
+        "JSXExpressionContainer",
+        "JSXMemberExpression",
+        "JSXElement",
+        "JSXFragment",
+        "JSXText",
+        "JSXEmptyExpression",
+        "JSXSpreadChild",
+        "TypeCastExpression",
+        "DoExpression",
+        "Super",
+        "BindExpression",
+        "MetaProperty",
+        "ParenthesizedExpression",
+        "DirectiveLiteral",
+        "StringLiteral",
+        "NumericLiteral",
+        "BigIntLiteral",
+        "NullLiteral",
+        "BooleanLiteral",
+        "RegExpLiteral",
+        "PrivateName",
+        "Import",
+        "TSAsExpression",
+        "TSNonNullExpression",
+        "TSTypeParameter",
+        "TSTypeAssertion",
+        "OptionalMemberExpression",
+        "OptionalCallExpression"
+    ],
+    "PatternKind": [
+        "Identifier",
+        "RestElement",
+        "SpreadElementPattern",
+        "PropertyPattern",
+        "ObjectPattern",
+        "ArrayPattern",
+        "AssignmentPattern",
+        "SpreadPropertyPattern",
+        "JSXIdentifier",
+        "PrivateName",
+        "TSAsExpression",
+        "TSNonNullExpression",
+        "TSTypeParameter",
+        "TSTypeAssertion",
+        "TSParameterProperty"
+    ],
+    "IdentifierKind": [
+        "Identifier",
+        "JSXIdentifier",
+        "TSTypeParameter"
+    ],
+    "BlockStatementKind": [
+        "BlockStatement"
+    ],
+    "EmptyStatementKind": [
+        "EmptyStatement"
+    ],
+    "ExpressionStatementKind": [
+        "ExpressionStatement"
+    ],
+    "IfStatementKind": [
+        "IfStatement"
+    ],
+    "LabeledStatementKind": [
+        "LabeledStatement"
+    ],
+    "BreakStatementKind": [
+        "BreakStatement"
+    ],
+    "ContinueStatementKind": [
+        "ContinueStatement"
+    ],
+    "WithStatementKind": [
+        "WithStatement"
+    ],
+    "SwitchStatementKind": [
+        "SwitchStatement"
+    ],
+    "SwitchCaseKind": [
+        "SwitchCase"
+    ],
+    "ReturnStatementKind": [
+        "ReturnStatement"
+    ],
+    "ThrowStatementKind": [
+        "ThrowStatement"
+    ],
+    "TryStatementKind": [
+        "TryStatement"
+    ],
+    "CatchClauseKind": [
+        "CatchClause"
+    ],
+    "WhileStatementKind": [
+        "WhileStatement"
+    ],
+    "DoWhileStatementKind": [
+        "DoWhileStatement"
+    ],
+    "ForStatementKind": [
+        "ForStatement"
+    ],
+    "DeclarationKind": [
+        "VariableDeclaration",
+        "FunctionDeclaration",
+        "MethodDefinition",
+        "ClassPropertyDefinition",
+        "ClassProperty",
+        "ClassBody",
+        "ClassDeclaration",
+        "ImportDeclaration",
+        "TSTypeParameterDeclaration",
+        "InterfaceDeclaration",
+        "DeclareInterface",
+        "TypeAlias",
+        "OpaqueType",
+        "DeclareTypeAlias",
+        "DeclareOpaqueType",
+        "DeclareClass",
+        "DeclareExportDeclaration",
+        "DeclareExportAllDeclaration",
+        "ExportDeclaration",
+        "ExportDefaultDeclaration",
+        "ExportNamedDeclaration",
+        "ExportAllDeclaration",
+        "ClassPrivateProperty",
+        "ClassMethod",
+        "ClassPrivateMethod",
+        "TSDeclareFunction",
+        "TSDeclareMethod",
+        "TSIndexSignature",
+        "TSPropertySignature",
+        "TSMethodSignature",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration",
+        "TSEnumDeclaration",
+        "TSTypeAliasDeclaration",
+        "TSModuleDeclaration",
+        "TSImportEqualsDeclaration",
+        "TSExternalModuleReference",
+        "TSNamespaceExportDeclaration",
+        "TSInterfaceDeclaration"
+    ],
+    "VariableDeclarationKind": [
+        "VariableDeclaration"
+    ],
+    "ForInStatementKind": [
+        "ForInStatement"
+    ],
+    "DebuggerStatementKind": [
+        "DebuggerStatement"
+    ],
+    "FunctionDeclarationKind": [
+        "FunctionDeclaration"
+    ],
+    "FunctionExpressionKind": [
+        "FunctionExpression"
+    ],
+    "VariableDeclaratorKind": [
+        "VariableDeclarator"
+    ],
+    "ThisExpressionKind": [
+        "ThisExpression"
+    ],
+    "ArrayExpressionKind": [
+        "ArrayExpression"
+    ],
+    "ObjectExpressionKind": [
+        "ObjectExpression"
+    ],
+    "PropertyKind": [
+        "Property"
+    ],
+    "LiteralKind": [
+        "Literal",
+        "JSXText",
+        "StringLiteral",
+        "NumericLiteral",
+        "BigIntLiteral",
+        "NullLiteral",
+        "BooleanLiteral",
+        "RegExpLiteral"
+    ],
+    "SequenceExpressionKind": [
+        "SequenceExpression"
+    ],
+    "UnaryExpressionKind": [
+        "UnaryExpression"
+    ],
+    "BinaryExpressionKind": [
+        "BinaryExpression"
+    ],
+    "AssignmentExpressionKind": [
+        "AssignmentExpression"
+    ],
+    "MemberExpressionKind": [
+        "MemberExpression",
+        "JSXMemberExpression",
+        "OptionalMemberExpression"
+    ],
+    "UpdateExpressionKind": [
+        "UpdateExpression"
+    ],
+    "LogicalExpressionKind": [
+        "LogicalExpression"
+    ],
+    "ConditionalExpressionKind": [
+        "ConditionalExpression"
+    ],
+    "NewExpressionKind": [
+        "NewExpression"
+    ],
+    "CallExpressionKind": [
+        "CallExpression",
+        "OptionalCallExpression"
+    ],
+    "RestElementKind": [
+        "RestElement"
+    ],
+    "TypeAnnotationKind": [
+        "TypeAnnotation"
+    ],
+    "TSTypeAnnotationKind": [
+        "TSTypeAnnotation",
+        "TSTypePredicate"
+    ],
+    "SpreadElementPatternKind": [
+        "SpreadElementPattern"
+    ],
+    "ArrowFunctionExpressionKind": [
+        "ArrowFunctionExpression"
+    ],
+    "ForOfStatementKind": [
+        "ForOfStatement"
+    ],
+    "YieldExpressionKind": [
+        "YieldExpression"
+    ],
+    "GeneratorExpressionKind": [
+        "GeneratorExpression"
+    ],
+    "ComprehensionBlockKind": [
+        "ComprehensionBlock"
+    ],
+    "ComprehensionExpressionKind": [
+        "ComprehensionExpression"
+    ],
+    "ObjectPropertyKind": [
+        "ObjectProperty"
+    ],
+    "PropertyPatternKind": [
+        "PropertyPattern"
+    ],
+    "ObjectPatternKind": [
+        "ObjectPattern"
+    ],
+    "ArrayPatternKind": [
+        "ArrayPattern"
+    ],
+    "MethodDefinitionKind": [
+        "MethodDefinition"
+    ],
+    "SpreadElementKind": [
+        "SpreadElement"
+    ],
+    "AssignmentPatternKind": [
+        "AssignmentPattern"
+    ],
+    "ClassPropertyDefinitionKind": [
+        "ClassPropertyDefinition"
+    ],
+    "ClassPropertyKind": [
+        "ClassProperty",
+        "ClassPrivateProperty"
+    ],
+    "ClassBodyKind": [
+        "ClassBody"
+    ],
+    "ClassDeclarationKind": [
+        "ClassDeclaration"
+    ],
+    "ClassExpressionKind": [
+        "ClassExpression"
+    ],
+    "SpecifierKind": [
+        "ImportSpecifier",
+        "ImportNamespaceSpecifier",
+        "ImportDefaultSpecifier",
+        "ExportSpecifier",
+        "ExportBatchSpecifier",
+        "ExportNamespaceSpecifier",
+        "ExportDefaultSpecifier"
+    ],
+    "ModuleSpecifierKind": [
+        "ImportSpecifier",
+        "ImportNamespaceSpecifier",
+        "ImportDefaultSpecifier",
+        "ExportSpecifier"
+    ],
+    "ImportSpecifierKind": [
+        "ImportSpecifier"
+    ],
+    "ImportNamespaceSpecifierKind": [
+        "ImportNamespaceSpecifier"
+    ],
+    "ImportDefaultSpecifierKind": [
+        "ImportDefaultSpecifier"
+    ],
+    "ImportDeclarationKind": [
+        "ImportDeclaration"
+    ],
+    "TaggedTemplateExpressionKind": [
+        "TaggedTemplateExpression"
+    ],
+    "TemplateLiteralKind": [
+        "TemplateLiteral"
+    ],
+    "TemplateElementKind": [
+        "TemplateElement"
+    ],
+    "SpreadPropertyKind": [
+        "SpreadProperty"
+    ],
+    "SpreadPropertyPatternKind": [
+        "SpreadPropertyPattern"
+    ],
+    "AwaitExpressionKind": [
+        "AwaitExpression"
+    ],
+    "JSXAttributeKind": [
+        "JSXAttribute"
+    ],
+    "JSXIdentifierKind": [
+        "JSXIdentifier"
+    ],
+    "JSXNamespacedNameKind": [
+        "JSXNamespacedName"
+    ],
+    "JSXExpressionContainerKind": [
+        "JSXExpressionContainer"
+    ],
+    "JSXMemberExpressionKind": [
+        "JSXMemberExpression"
+    ],
+    "JSXSpreadAttributeKind": [
+        "JSXSpreadAttribute"
+    ],
+    "JSXElementKind": [
+        "JSXElement"
+    ],
+    "JSXOpeningElementKind": [
+        "JSXOpeningElement"
+    ],
+    "JSXClosingElementKind": [
+        "JSXClosingElement"
+    ],
+    "JSXFragmentKind": [
+        "JSXFragment"
+    ],
+    "JSXTextKind": [
+        "JSXText"
+    ],
+    "JSXOpeningFragmentKind": [
+        "JSXOpeningFragment"
+    ],
+    "JSXClosingFragmentKind": [
+        "JSXClosingFragment"
+    ],
+    "JSXEmptyExpressionKind": [
+        "JSXEmptyExpression"
+    ],
+    "JSXSpreadChildKind": [
+        "JSXSpreadChild"
+    ],
+    "TypeParameterDeclarationKind": [
+        "TypeParameterDeclaration"
+    ],
+    "TSTypeParameterDeclarationKind": [
+        "TSTypeParameterDeclaration"
+    ],
+    "TypeParameterInstantiationKind": [
+        "TypeParameterInstantiation"
+    ],
+    "TSTypeParameterInstantiationKind": [
+        "TSTypeParameterInstantiation"
+    ],
+    "ClassImplementsKind": [
+        "ClassImplements"
+    ],
+    "TSTypeKind": [
+        "TSExpressionWithTypeArguments",
+        "TSTypeReference",
+        "TSAnyKeyword",
+        "TSBigIntKeyword",
+        "TSBooleanKeyword",
+        "TSNeverKeyword",
+        "TSNullKeyword",
+        "TSNumberKeyword",
+        "TSObjectKeyword",
+        "TSStringKeyword",
+        "TSSymbolKeyword",
+        "TSUndefinedKeyword",
+        "TSUnknownKeyword",
+        "TSVoidKeyword",
+        "TSThisType",
+        "TSArrayType",
+        "TSLiteralType",
+        "TSUnionType",
+        "TSIntersectionType",
+        "TSConditionalType",
+        "TSInferType",
+        "TSParenthesizedType",
+        "TSFunctionType",
+        "TSConstructorType",
+        "TSMappedType",
+        "TSTupleType",
+        "TSRestType",
+        "TSOptionalType",
+        "TSIndexedAccessType",
+        "TSTypeOperator",
+        "TSTypeQuery",
+        "TSImportType",
+        "TSTypeLiteral"
+    ],
+    "TSHasOptionalTypeParameterInstantiationKind": [
+        "TSExpressionWithTypeArguments",
+        "TSTypeReference",
+        "TSImportType"
+    ],
+    "TSExpressionWithTypeArgumentsKind": [
+        "TSExpressionWithTypeArguments"
+    ],
+    "FlowKind": [
+        "AnyTypeAnnotation",
+        "EmptyTypeAnnotation",
+        "MixedTypeAnnotation",
+        "VoidTypeAnnotation",
+        "NumberTypeAnnotation",
+        "NumberLiteralTypeAnnotation",
+        "NumericLiteralTypeAnnotation",
+        "StringTypeAnnotation",
+        "StringLiteralTypeAnnotation",
+        "BooleanTypeAnnotation",
+        "BooleanLiteralTypeAnnotation",
+        "NullableTypeAnnotation",
+        "NullLiteralTypeAnnotation",
+        "NullTypeAnnotation",
+        "ThisTypeAnnotation",
+        "ExistsTypeAnnotation",
+        "ExistentialTypeParam",
+        "FunctionTypeAnnotation",
+        "ArrayTypeAnnotation",
+        "ObjectTypeAnnotation",
+        "GenericTypeAnnotation",
+        "MemberTypeAnnotation",
+        "UnionTypeAnnotation",
+        "IntersectionTypeAnnotation",
+        "TypeofTypeAnnotation",
+        "TypeParameter",
+        "InterfaceTypeAnnotation",
+        "TupleTypeAnnotation",
+        "InferredPredicate",
+        "DeclaredPredicate"
+    ],
+    "FlowTypeKind": [
+        "AnyTypeAnnotation",
+        "EmptyTypeAnnotation",
+        "MixedTypeAnnotation",
+        "VoidTypeAnnotation",
+        "NumberTypeAnnotation",
+        "NumberLiteralTypeAnnotation",
+        "NumericLiteralTypeAnnotation",
+        "StringTypeAnnotation",
+        "StringLiteralTypeAnnotation",
+        "BooleanTypeAnnotation",
+        "BooleanLiteralTypeAnnotation",
+        "NullableTypeAnnotation",
+        "NullLiteralTypeAnnotation",
+        "NullTypeAnnotation",
+        "ThisTypeAnnotation",
+        "ExistsTypeAnnotation",
+        "ExistentialTypeParam",
+        "FunctionTypeAnnotation",
+        "ArrayTypeAnnotation",
+        "ObjectTypeAnnotation",
+        "GenericTypeAnnotation",
+        "MemberTypeAnnotation",
+        "UnionTypeAnnotation",
+        "IntersectionTypeAnnotation",
+        "TypeofTypeAnnotation",
+        "TypeParameter",
+        "InterfaceTypeAnnotation",
+        "TupleTypeAnnotation"
+    ],
+    "AnyTypeAnnotationKind": [
+        "AnyTypeAnnotation"
+    ],
+    "EmptyTypeAnnotationKind": [
+        "EmptyTypeAnnotation"
+    ],
+    "MixedTypeAnnotationKind": [
+        "MixedTypeAnnotation"
+    ],
+    "VoidTypeAnnotationKind": [
+        "VoidTypeAnnotation"
+    ],
+    "NumberTypeAnnotationKind": [
+        "NumberTypeAnnotation"
+    ],
+    "NumberLiteralTypeAnnotationKind": [
+        "NumberLiteralTypeAnnotation"
+    ],
+    "NumericLiteralTypeAnnotationKind": [
+        "NumericLiteralTypeAnnotation"
+    ],
+    "StringTypeAnnotationKind": [
+        "StringTypeAnnotation"
+    ],
+    "StringLiteralTypeAnnotationKind": [
+        "StringLiteralTypeAnnotation"
+    ],
+    "BooleanTypeAnnotationKind": [
+        "BooleanTypeAnnotation"
+    ],
+    "BooleanLiteralTypeAnnotationKind": [
+        "BooleanLiteralTypeAnnotation"
+    ],
+    "NullableTypeAnnotationKind": [
+        "NullableTypeAnnotation"
+    ],
+    "NullLiteralTypeAnnotationKind": [
+        "NullLiteralTypeAnnotation"
+    ],
+    "NullTypeAnnotationKind": [
+        "NullTypeAnnotation"
+    ],
+    "ThisTypeAnnotationKind": [
+        "ThisTypeAnnotation"
+    ],
+    "ExistsTypeAnnotationKind": [
+        "ExistsTypeAnnotation"
+    ],
+    "ExistentialTypeParamKind": [
+        "ExistentialTypeParam"
+    ],
+    "FunctionTypeAnnotationKind": [
+        "FunctionTypeAnnotation"
+    ],
+    "FunctionTypeParamKind": [
+        "FunctionTypeParam"
+    ],
+    "ArrayTypeAnnotationKind": [
+        "ArrayTypeAnnotation"
+    ],
+    "ObjectTypeAnnotationKind": [
+        "ObjectTypeAnnotation"
+    ],
+    "ObjectTypePropertyKind": [
+        "ObjectTypeProperty"
+    ],
+    "ObjectTypeSpreadPropertyKind": [
+        "ObjectTypeSpreadProperty"
+    ],
+    "ObjectTypeIndexerKind": [
+        "ObjectTypeIndexer"
+    ],
+    "ObjectTypeCallPropertyKind": [
+        "ObjectTypeCallProperty"
+    ],
+    "ObjectTypeInternalSlotKind": [
+        "ObjectTypeInternalSlot"
+    ],
+    "VarianceKind": [
+        "Variance"
+    ],
+    "QualifiedTypeIdentifierKind": [
+        "QualifiedTypeIdentifier"
+    ],
+    "GenericTypeAnnotationKind": [
+        "GenericTypeAnnotation"
+    ],
+    "MemberTypeAnnotationKind": [
+        "MemberTypeAnnotation"
+    ],
+    "UnionTypeAnnotationKind": [
+        "UnionTypeAnnotation"
+    ],
+    "IntersectionTypeAnnotationKind": [
+        "IntersectionTypeAnnotation"
+    ],
+    "TypeofTypeAnnotationKind": [
+        "TypeofTypeAnnotation"
+    ],
+    "TypeParameterKind": [
+        "TypeParameter"
+    ],
+    "InterfaceTypeAnnotationKind": [
+        "InterfaceTypeAnnotation"
+    ],
+    "InterfaceExtendsKind": [
+        "InterfaceExtends"
+    ],
+    "InterfaceDeclarationKind": [
+        "InterfaceDeclaration",
+        "DeclareInterface",
+        "DeclareClass"
+    ],
+    "DeclareInterfaceKind": [
+        "DeclareInterface"
+    ],
+    "TypeAliasKind": [
+        "TypeAlias",
+        "DeclareTypeAlias",
+        "DeclareOpaqueType"
+    ],
+    "OpaqueTypeKind": [
+        "OpaqueType"
+    ],
+    "DeclareTypeAliasKind": [
+        "DeclareTypeAlias"
+    ],
+    "DeclareOpaqueTypeKind": [
+        "DeclareOpaqueType"
+    ],
+    "TypeCastExpressionKind": [
+        "TypeCastExpression"
+    ],
+    "TupleTypeAnnotationKind": [
+        "TupleTypeAnnotation"
+    ],
+    "DeclareVariableKind": [
+        "DeclareVariable"
+    ],
+    "DeclareFunctionKind": [
+        "DeclareFunction"
+    ],
+    "DeclareClassKind": [
+        "DeclareClass"
+    ],
+    "DeclareModuleKind": [
+        "DeclareModule"
+    ],
+    "DeclareModuleExportsKind": [
+        "DeclareModuleExports"
+    ],
+    "DeclareExportDeclarationKind": [
+        "DeclareExportDeclaration"
+    ],
+    "ExportSpecifierKind": [
+        "ExportSpecifier"
+    ],
+    "ExportBatchSpecifierKind": [
+        "ExportBatchSpecifier"
+    ],
+    "DeclareExportAllDeclarationKind": [
+        "DeclareExportAllDeclaration"
+    ],
+    "FlowPredicateKind": [
+        "InferredPredicate",
+        "DeclaredPredicate"
+    ],
+    "InferredPredicateKind": [
+        "InferredPredicate"
+    ],
+    "DeclaredPredicateKind": [
+        "DeclaredPredicate"
+    ],
+    "ExportDeclarationKind": [
+        "ExportDeclaration"
+    ],
+    "BlockKind": [
+        "Block"
+    ],
+    "LineKind": [
+        "Line"
+    ],
+    "NoopKind": [
+        "Noop"
+    ],
+    "DoExpressionKind": [
+        "DoExpression"
+    ],
+    "SuperKind": [
+        "Super"
+    ],
+    "BindExpressionKind": [
+        "BindExpression"
+    ],
+    "DecoratorKind": [
+        "Decorator"
+    ],
+    "MetaPropertyKind": [
+        "MetaProperty"
+    ],
+    "ParenthesizedExpressionKind": [
+        "ParenthesizedExpression"
+    ],
+    "ExportDefaultDeclarationKind": [
+        "ExportDefaultDeclaration"
+    ],
+    "ExportNamedDeclarationKind": [
+        "ExportNamedDeclaration"
+    ],
+    "ExportNamespaceSpecifierKind": [
+        "ExportNamespaceSpecifier"
+    ],
+    "ExportDefaultSpecifierKind": [
+        "ExportDefaultSpecifier"
+    ],
+    "ExportAllDeclarationKind": [
+        "ExportAllDeclaration"
+    ],
+    "CommentBlockKind": [
+        "CommentBlock"
+    ],
+    "CommentLineKind": [
+        "CommentLine"
+    ],
+    "DirectiveKind": [
+        "Directive"
+    ],
+    "DirectiveLiteralKind": [
+        "DirectiveLiteral"
+    ],
+    "InterpreterDirectiveKind": [
+        "InterpreterDirective"
+    ],
+    "StringLiteralKind": [
+        "StringLiteral"
+    ],
+    "NumericLiteralKind": [
+        "NumericLiteral"
+    ],
+    "BigIntLiteralKind": [
+        "BigIntLiteral"
+    ],
+    "NullLiteralKind": [
+        "NullLiteral"
+    ],
+    "BooleanLiteralKind": [
+        "BooleanLiteral"
+    ],
+    "RegExpLiteralKind": [
+        "RegExpLiteral"
+    ],
+    "ObjectMethodKind": [
+        "ObjectMethod"
+    ],
+    "ClassPrivatePropertyKind": [
+        "ClassPrivateProperty"
+    ],
+    "ClassMethodKind": [
+        "ClassMethod"
+    ],
+    "ClassPrivateMethodKind": [
+        "ClassPrivateMethod"
+    ],
+    "PrivateNameKind": [
+        "PrivateName"
+    ],
+    "RestPropertyKind": [
+        "RestProperty"
+    ],
+    "ForAwaitStatementKind": [
+        "ForAwaitStatement"
+    ],
+    "ImportKind": [
+        "Import"
+    ],
+    "TSQualifiedNameKind": [
+        "TSQualifiedName"
+    ],
+    "TSTypeReferenceKind": [
+        "TSTypeReference"
+    ],
+    "TSHasOptionalTypeParametersKind": [
+        "TSFunctionType",
+        "TSConstructorType",
+        "TSDeclareFunction",
+        "TSDeclareMethod",
+        "TSMethodSignature",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration",
+        "TSTypeAliasDeclaration",
+        "TSInterfaceDeclaration"
+    ],
+    "TSHasOptionalTypeAnnotationKind": [
+        "TSFunctionType",
+        "TSConstructorType",
+        "TSIndexSignature",
+        "TSPropertySignature",
+        "TSMethodSignature",
+        "TSCallSignatureDeclaration",
+        "TSConstructSignatureDeclaration"
+    ],
+    "TSAsExpressionKind": [
+        "TSAsExpression"
+    ],
+    "TSNonNullExpressionKind": [
+        "TSNonNullExpression"
+    ],
+    "TSAnyKeywordKind": [
+        "TSAnyKeyword"
+    ],
+    "TSBigIntKeywordKind": [
+        "TSBigIntKeyword"
+    ],
+    "TSBooleanKeywordKind": [
+        "TSBooleanKeyword"
+    ],
+    "TSNeverKeywordKind": [
+        "TSNeverKeyword"
+    ],
+    "TSNullKeywordKind": [
+        "TSNullKeyword"
+    ],
+    "TSNumberKeywordKind": [
+        "TSNumberKeyword"
+    ],
+    "TSObjectKeywordKind": [
+        "TSObjectKeyword"
+    ],
+    "TSStringKeywordKind": [
+        "TSStringKeyword"
+    ],
+    "TSSymbolKeywordKind": [
+        "TSSymbolKeyword"
+    ],
+    "TSUndefinedKeywordKind": [
+        "TSUndefinedKeyword"
+    ],
+    "TSUnknownKeywordKind": [
+        "TSUnknownKeyword"
+    ],
+    "TSVoidKeywordKind": [
+        "TSVoidKeyword"
+    ],
+    "TSThisTypeKind": [
+        "TSThisType"
+    ],
+    "TSArrayTypeKind": [
+        "TSArrayType"
+    ],
+    "TSLiteralTypeKind": [
+        "TSLiteralType"
+    ],
+    "TSUnionTypeKind": [
+        "TSUnionType"
+    ],
+    "TSIntersectionTypeKind": [
+        "TSIntersectionType"
+    ],
+    "TSConditionalTypeKind": [
+        "TSConditionalType"
+    ],
+    "TSInferTypeKind": [
+        "TSInferType"
+    ],
+    "TSTypeParameterKind": [
+        "TSTypeParameter"
+    ],
+    "TSParenthesizedTypeKind": [
+        "TSParenthesizedType"
+    ],
+    "TSFunctionTypeKind": [
+        "TSFunctionType"
+    ],
+    "TSConstructorTypeKind": [
+        "TSConstructorType"
+    ],
+    "TSDeclareFunctionKind": [
+        "TSDeclareFunction"
+    ],
+    "TSDeclareMethodKind": [
+        "TSDeclareMethod"
+    ],
+    "TSMappedTypeKind": [
+        "TSMappedType"
+    ],
+    "TSTupleTypeKind": [
+        "TSTupleType"
+    ],
+    "TSRestTypeKind": [
+        "TSRestType"
+    ],
+    "TSOptionalTypeKind": [
+        "TSOptionalType"
+    ],
+    "TSIndexedAccessTypeKind": [
+        "TSIndexedAccessType"
+    ],
+    "TSTypeOperatorKind": [
+        "TSTypeOperator"
+    ],
+    "TSIndexSignatureKind": [
+        "TSIndexSignature"
+    ],
+    "TSPropertySignatureKind": [
+        "TSPropertySignature"
+    ],
+    "TSMethodSignatureKind": [
+        "TSMethodSignature"
+    ],
+    "TSTypePredicateKind": [
+        "TSTypePredicate"
+    ],
+    "TSCallSignatureDeclarationKind": [
+        "TSCallSignatureDeclaration"
+    ],
+    "TSConstructSignatureDeclarationKind": [
+        "TSConstructSignatureDeclaration"
+    ],
+    "TSEnumMemberKind": [
+        "TSEnumMember"
+    ],
+    "TSTypeQueryKind": [
+        "TSTypeQuery"
+    ],
+    "TSImportTypeKind": [
+        "TSImportType"
+    ],
+    "TSTypeLiteralKind": [
+        "TSTypeLiteral"
+    ],
+    "TSTypeAssertionKind": [
+        "TSTypeAssertion"
+    ],
+    "TSEnumDeclarationKind": [
+        "TSEnumDeclaration"
+    ],
+    "TSTypeAliasDeclarationKind": [
+        "TSTypeAliasDeclaration"
+    ],
+    "TSModuleBlockKind": [
+        "TSModuleBlock"
+    ],
+    "TSModuleDeclarationKind": [
+        "TSModuleDeclaration"
+    ],
+    "TSImportEqualsDeclarationKind": [
+        "TSImportEqualsDeclaration"
+    ],
+    "TSExternalModuleReferenceKind": [
+        "TSExternalModuleReference"
+    ],
+    "TSExportAssignmentKind": [
+        "TSExportAssignment"
+    ],
+    "TSNamespaceExportDeclarationKind": [
+        "TSNamespaceExportDeclaration"
+    ],
+    "TSInterfaceBodyKind": [
+        "TSInterfaceBody"
+    ],
+    "TSInterfaceDeclarationKind": [
+        "TSInterfaceDeclaration"
+    ],
+    "TSParameterPropertyKind": [
+        "TSParameterProperty"
+    ],
+    "OptionalMemberExpressionKind": [
+        "OptionalMemberExpression"
+    ],
+    "OptionalCallExpressionKind": [
+        "OptionalCallExpression"
+    ]
+}
