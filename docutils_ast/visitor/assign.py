@@ -7,7 +7,8 @@ from stringcase import camelcase
 import logging
 import builtins
 from docutils_ast.model import Class, ClassProperty
-from docutils_ast.logging import CustomAdapter
+from docutils_ast.logging import CustomAdapter, StructuredMessage
+_ = StructuredMessage
 from ast import AST
 
 def node_repr(node):
@@ -42,10 +43,22 @@ class ValueCollector(ast.NodeVisitor):
     cur_node = None
     name = 'root'
     level = 0
+    cur_fields = []
     cur_field = None
+    value_index = [-1]
+    cur_values = []
+    cur_out_nodes = None
     
-    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None):
-        self.logger = CustomAdapter(logging.getLogger(name), self)
+    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None, logger=None):
+        if not logger and parent:
+            logger_ = parent._logger
+        else:
+            logger_ = logger
+        if not logger:
+            logger = logging.getLogger(__name__)
+        self._logger = logger_
+        
+        self.logger = CustomAdapter(logger_, self)
         self.parent = parent
         self.namespaces = []
         if parent is not None:
@@ -62,7 +75,7 @@ class ValueCollector(ast.NodeVisitor):
             self.module = module
             self.graph_file = graph_file
         self.top_level= top_level
-        #self.logger.debug('constructing ValueCollector%s' % (' TopLevel' if top_level else ''))
+        self.logger.debug(_('initializing ValueCollector'))
         self.var_scope = { }
         self.body = []
         self.stack= []
@@ -76,32 +89,43 @@ class ValueCollector(ast.NodeVisitor):
             self.append_to = []
 
     def generic_visit(self,  node, callSuper=True, newStack=False):
-        self.logger.debug('generic_visit(%r, %r, %r)', node.__class__.__name__, callSuper, newStack)
+        #self.logger.debug(_('generic_visit(%r, %r, %r)',
+        #                  node.__class__.__name__,
+        #                  callSuper, newStack)
         self.in_nodes.append(node)
         if self.enabled:
             if self.main_node is None:
-                #self.logger.debug('setting main node of %s', self.name)
                 self.main_node = node
                 self.main_collect_array = self.collect_array
                 self.main_collect_scalar = self.collect_scalar
         if newStack:
-            self.logger.debug('creating new stack')
+            self.logger.debug(_('creating new stack'))
             self.stack.append(self.body)
             self.body = []
         if callSuper:
+            self.cur_values.append({})
             for field, value in ast.iter_fields(node):
+                self.cur_fields.append(field)
                 self.cur_field = field
                 if isinstance(value, list):
+                    self.cur_values[-1][field] = []
+                    self.value_index.append(0)
                     for item in value:
                         if isinstance(item, AST):
+                            self.cur_node = None
                             self.visit(item)
+                        self.value_index[-1] += 1
+                    self.value_index.pop()
                 elif isinstance(value, AST):
+                    self.value_index.append(None)
                     self.visit(value)
+                    self.value_index.pop()
+                self.cur_fields.pop()
     
         self.in_nodes.pop()
         if newStack:
             self.result = self.body
-            self.logger.debug('popping stack %d' % len(self.result))
+            self.logger.debug(_('popping stack %d' % len(self.result)))
             self.body = self.stack.pop()
         if self.main_node == node:
             self.collected_value = self.append_to
@@ -113,7 +137,7 @@ class ValueCollector(ast.NodeVisitor):
             
     def visit_Assign(self, node):
         out_stmts = []
-        self.logger.debug('[%04d:%03d] visit_Assign(%r) [ %r ]', node.lineno,node.col_offset , node.__class__.__name__, node_repr(self.in_nodes[-1]))
+        self.logger.debug(_('visit_Assign', name=node.__class__.__name__, node_desc=node_repr(self.in_nodes[-1])))
         t = node.targets;
         if self.disable_perm:
             self.generic_visit(node)
@@ -131,19 +155,19 @@ class ValueCollector(ast.NodeVisitor):
             elif vvc.main_collect_scalar:
                 value = v[0]
             else:
-                self.logger.error('%s', astpretty.pformat(node.value))
+                self.logger.error(_('%s' % astpretty.pformat(node.value)))
                 exit(4)
 
         except Exception as ex:
-            self.logger.error('%r', v)
-            self.logger.error('major element is %r', self.major_element)
-            self.logger.error(ex)
-            self.logger.error(astpretty.pformat(node))
+            self.logger.error(_('%r' % v))
+            self.logger.error(_('major element is %r' % self.major_element))
+            self.logger.error(_(ex))
+            self.logger.error(_(astpretty.pformat(node)))
             exit(22)
 
         
         self.append_to = []
-        self.logger.debug('right is %r', value)
+        self.logger.debug(_('right is %r' % value))
         self.generic_visit(node, False)
         right = value
         annotation = None
@@ -161,7 +185,7 @@ class ValueCollector(ast.NodeVisitor):
                 n = val['name']
                 if isinstance(self.in_nodes[-1], ast.ClassDef):
                     prop = ClassProperty(self.major_element, n)
-                    self.logger.debug('adding class property %s', n)
+                    self.logger.debug(_('adding class property %s' % n))
                     self.major_element.add(prop)
                     self.current_namespace.store_name(n, prop)
                 else:
@@ -217,13 +241,7 @@ class ValueCollector(ast.NodeVisitor):
                 self.body.append(stmt)
     #        self.disable_perm = True
         self.enabled = oldEnabled
-        self.logger.debug('output statements: %r', out_stmts)
-
-    def advance_level(self):
-        self.level += 1
-
-    def retreat_level(self):
-        self.level -= 1
+        self.logger.debug(_('output statements: %r'% out_stmts))
 
     def visit_Tuple(self, node):
         if not self.enabled:
@@ -233,7 +251,10 @@ class ValueCollector(ast.NodeVisitor):
         self.append_to = []
         self.collect_array = True
         self.generic_visit(node)
-        expr = { "type": 'CallExpression', 'callee': { 'type': 'Identifier', 'name': 'Tuple'}, 'arguments': self.append_to, 'comments': comments_for(node) }
+        expr = { "type": 'CallExpression',
+                 'callee': { 'type': 'Identifier', 'name': 'Tuple'},
+                 'arguments': self.append_to,
+                 'comments': comments_for(node) }
         self.cur_node = expr
 
         self.append_to = self.context.pop()
@@ -312,9 +333,9 @@ class ValueCollector(ast.NodeVisitor):
             self.generic_visit(node, False)
         except Exception as ex:
             raise ex
-            self.logger.error('major element is %r', self.major_element)
-            self.logger.error(ex)
-            self.logger.error(astpretty.pformat(node))
+            self.logger.error(_('major element is %r' % self.major_element))
+            self.logger.error(_(ex))
+            self.logger.error(_(astpretty.pformat(node)))
             exit(20)
             
     def visit_UnaryOp(self, node):
@@ -327,7 +348,7 @@ class ValueCollector(ast.NodeVisitor):
         elif isinstance(node.op, ast.USub):
             operator = '-'
         else:
-            self.logger.error('%s', astpretty.pformat(node.value))
+            self.logger.error(_('%s' % astpretty.pformat(node.value)))
             exit(5)
 
         self.context.append(self.append_to)
@@ -345,7 +366,7 @@ class ValueCollector(ast.NodeVisitor):
         v = ValueCollector('', True, parent=self)
         v.do_visit(node.test)
         if not v.main_collect_scalar:
-            self.logger.error('%s', astpretty.pformat(node.test))
+            self.logger.error(_('%s' % astpretty.pformat(node.test)))
             exit(6)
 
         test = v.collected_value[0]
@@ -510,7 +531,7 @@ class ValueCollector(ast.NodeVisitor):
             if func['type'] == 'Identifier':
                 funcName = func['name']
                 if builtins.__dict__[funcName]:
-                    self.logger.debug('found builtin %s', funcName)
+                    self.logger.debug(_('found builtin %s' % funcName))
 
                 if funcName == "isinstance":
                     # hande right hand side tuple 
@@ -798,7 +819,7 @@ class ValueCollector(ast.NodeVisitor):
             self.in_class_def = False
             self.body.append(expr)
         except Exception as ex:
-            self.logger.error('major element is %r', self.major_element)
+            self.logger.error(_('major element is %r' % self.major_element))
             raise ex
             exit(23)
     
@@ -830,9 +851,9 @@ class ValueCollector(ast.NodeVisitor):
             self.enabled = oldEnabled
         except Exception as ex:
             raise ex
-            self.logger.error('major element is %r', self.major_element)
-            self.logger.error(ex)
-            self.logger.error(astpretty.pformat(node))
+            self.logger.error(_('major element is %r' % self.major_element))
+            self.logger.error(_(ex))
+            self.logger.error(_(astpretty.pformat(node)))
             exit(21)
 
     def find_var(self, node):
@@ -862,10 +883,17 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_For(self, node):
         self.generic_visit(node)
+        
 
     def do_visit(self, node, *args, **kwargs):
-        self.logger.debug('do_visit(%s)', node_repr(node))
+        self.logger.debug(_('do_visit(%s)' % node_repr(node)))
         return self.visit(node, *args, **kwargs)
 
     def __repr__(self):
         return '%s<%r>' % (self.__class__.__name__, self.collected_value)
+    def advance_level(self):
+        self.level += 1
+
+    def retreat_level(self):
+        self.level -= 1
+
