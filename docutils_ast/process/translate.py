@@ -10,12 +10,10 @@ from docutils_ast.transform import Transform1
 from docutils_ast.logging import StructuredMessage
 _ = StructuredMessage
 class CodeTranslator:
-    def __init__(self, logger):
+    def __init__(self, kinds,named_types,logger):
+        self.kinds= kinds
+        self.named_types = named_types
         self.logger = logger
-        with open('files/kinds.json', 'r') as f:
-            self.kinds = json.load(fp=f)
-        with open('files/namedTypes.json', 'r') as f:
-            self.named_types = json.load(fp=f)
 
     def translate(self, input_filename, output_filename):
         if input_filename is None:
@@ -60,13 +58,15 @@ class CodeTranslator:
     
         analyzer = ValueCollector("main", True, top_level=True, module=the_module, logger=self.logger, sym_table=sym_table, kinds=self.kinds, named_types=self.named_types);
         analyzer.do_visit(tree)
-        analyzer.report()
+        program = analyzer.finished_output_nodes[-1].pop()
     
         if output_filename:
             f = open(output_filename, 'w')
         else:
             f = sys.stdout
     
-        json.dump(analyzer.body, fp=f, indent=4)
+        json.dump(program, fp=f, indent=4)
         if output_filename:
             f.close()
+
+        return program

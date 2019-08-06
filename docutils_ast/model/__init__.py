@@ -36,9 +36,10 @@ class Namespace(ModelElement):
         return None
 
     def store_name(self, name: str, elem: NamedElement):
-        print('storing name %s' % name, file=sys.stderr)
+        #print('storing name %s' % name, file=sys.stderr)
         if name == 'document':
-            print('storing name %s' % name, file=sys.stderr)
+            pass
+            #print('storing name %s' % name, file=sys.stderr)
             
         self.namespace[name] = { 'elem': elem }
 

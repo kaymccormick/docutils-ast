@@ -14,6 +14,14 @@ class Collector(ast.NodeVisitor):
         self.logger = logger
         self.sym_table = sym_table
 
+    def visit_ClassDecl(self, node):
+        sym = self.sym_table.lookup(node.name.id)
+        assert sym
+        pass
+
+    def visit_FuncDef(self, node):
+        pass
+
     def visit_Import(self, node):
         for name in node.names:
             import_ = Import(name.name, name.asname)
