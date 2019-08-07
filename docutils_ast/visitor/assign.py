@@ -181,6 +181,13 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         self.collect_output_node(value['value'])
         self.logger.info(_('value', value=value))
+    def visit_Yield(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr= { 'type': 'YieldExpression', 'argument': value['value'] }
+        self.collect_output_node(expr)
+        self.logger.info(_('value', value=value))
+
     def visit_IfExp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -202,7 +209,7 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Assign(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.info(_('value', value=value))
+#        self.logger.info(_('value', value=value))
         targets = value['targets']
         assign_value = value['value']
         target_nodes = []
@@ -400,7 +407,7 @@ class ValueCollector(ast.NodeVisitor):
     def visit_If(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.info(_('value', value=value))
+#        self.logger.info(_('value', value=value))
         expr = { 'type': 'IfStatement', 'test': value['test'], 'consequent': { 'type': 'BlockStatement', 'body': value['body'] } }
         if 'orelse' in value and len(value['orelse']):
             expr['alternate'] = { 'type': 'BlockStatement', 'body': value['orelse'] }
@@ -448,7 +455,7 @@ class ValueCollector(ast.NodeVisitor):
     def visit_BinOp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.info(_('value', value=value))
+#        self.logger.info(_('value', value=value))
         expr = { 'type': 'BinaryExpression', 'operator': value['op'], 'left': value['left'], 'right': value['right'], 'comments': comments_for(node) }
         self.collect_output_node(expr)
 
@@ -595,7 +602,9 @@ class ValueCollector(ast.NodeVisitor):
                 expr = { 'type': 'MemberExpression', 'object': value['value'], 'property': value['slice']}
             self.logger.info(_('expr', expr=expr))
         else:
-            exit(2)
+            raise Error('')
+        if not expr:
+            raise Error('no node')
         self.collect_output_node(expr)
 
 
@@ -839,7 +848,7 @@ class ValueCollector(ast.NodeVisitor):
         self.in_class_def = False
         value = self.out_values.pop()
 
-        self.logger.info(_('value', value=value))
+#        self.logger.info(_('value', value=value))
 
         assert not self.in_class_def
 
@@ -979,7 +988,14 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_For(self, node):
         self.generic_visit(node)
-        return None
+        value = self.out_values.pop()
+        expr = {'type':'ForOfStatement', 'left': value['target'],
+                'right':value['iter'],
+                'body': { 'type':'BlockStatement', 'body': value['body']}}
+        self.collect_output_statement(expr)
+#        self.collect_output_node(value['value'])
+#        self.logger.info(_('value', value=value))
+#        exit(1)
 
     def visit_Try(self, node):
         self.generic_visit(node)
@@ -1013,6 +1029,12 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_literal('||')
     def visit_Add(self, node):
         self.collect_output_literal('+')
+    def visit_Sub(self, node):
+        self.collect_output_literal('-')
+    def visit_USub(self, node):
+        self.collect_output_literal('-')
+    def visit_BitOr(self, node):
+        self.collect_output_literal('|')
 
     def do_visit(self, node, *args, **kwargs):
         self.logger.debug(_('do_visit(%s)' % node_repr(node)))
@@ -1041,8 +1063,8 @@ class ValueCollector(ast.NodeVisitor):
         correct = None
         try:
             correct = check_ast(output_node)
-        except Excepton as ex:
-            logger.error(str(ex))
+        except Exception as ex:
+            self.logger.error(_(ex.message))
 
         self.output_nodes[-1].append(output_node)
     def collected_output_nodes(self):
