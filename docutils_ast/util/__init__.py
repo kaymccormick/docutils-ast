@@ -14,8 +14,9 @@ class Namespace(dict):
 
 def check_ast(astnode):
     r = requests.post('http://localhost:7700/ast/check-ast', json={ 'astNode': astnode})
-    print(str(r))
     if r.status_code == 200:
         return True
+    if r.status_code == 401:
+        raise ApplicationError(r.text)
     return False
     

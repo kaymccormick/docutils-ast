@@ -58,7 +58,7 @@ class CodeTranslator:
     
         analyzer = ValueCollector("main", True, top_level=True, module=the_module, logger=self.logger, sym_table=sym_table, kinds=self.kinds, named_types=self.named_types);
         analyzer.do_visit(tree)
-        program = analyzer.finished_output_nodes[-1].pop()
+        program = analyzer.output_nodes[-1][0]
     
         if output_filename:
             f = open(output_filename, 'w')

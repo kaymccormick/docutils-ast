@@ -43,7 +43,7 @@ class ValueCollector(ast.NodeVisitor):
     main_collect_scalar = None
     stack = None
     in_stmt = False
-    do_camelcase = True
+    do_camelcase = False
     collector_level = 0
     cur_node = None
     name = 'root'
@@ -59,7 +59,7 @@ class ValueCollector(ast.NodeVisitor):
     finished_output_nodes = []
     finished_output_statements = []
 
-    def __init__(self, name, enabled=False, do_camelcase=True, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None, logger=None, sym_table=None, kinds=None, named_types=None):
+    def __init__(self, name, enabled=False, do_camelcase=False, module=None, top_level: bool = False, parent: "ValueCollector"=None, graph_file=None, logger=None, sym_table=None, kinds=None, named_types=None):
         if not logger and parent:
             logger_ = parent._logger
         else:
@@ -181,6 +181,24 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         self.collect_output_node(value['value'])
         self.logger.info(_('value', value=value))
+    def visit_IfExp(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        #self.collect_output_node(value['value'])
+        expr = { 'type':'ConditionalExpression', 'test': value['test'],
+                 'consequent': value['body'],
+                 'alternate': value['orelse']}
+        self.collect_output_node(expr)
+
+    def visit_Slice(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        self.collect_output_literal(value)
+
+    def visit_Not(self, node):
+        self.generic_visit(node, False)
+        self.collect_output_literal('!')
+        
     def visit_Assign(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -243,6 +261,8 @@ class ValueCollector(ast.NodeVisitor):
         self.logger.debug(_('output statements: %r'% output_stmts))
  
     def process_target(self, target, value):
+        annotation = None
+        new_var = False
         if target['type'] == 'Identifier':
             n = target['name']
             if issubclass(self.in_nodes[-1], ast.ClassDef):
@@ -260,7 +280,7 @@ class ValueCollector(ast.NodeVisitor):
                     self.register_var(target)
                     if annotation is not None:
                         target['typeAnnotation'] = annotation;
-                    result = { 'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': val }], 'kind': 'let' }
+                    result = { 'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': target }], 'kind': 'let' }
                     return (True, False, result)
                 if not new_var:
                     return (False, False, target)
@@ -268,33 +288,37 @@ class ValueCollector(ast.NodeVisitor):
             return (False, False, target)
 
     def visit_Tuple(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-
-        self.collect_array = True
         self.generic_visit(node)
-        # where does our output go?
+        value = self.out_values.pop()
+        elts = value['elts']
         expr = { "type": 'CallExpression',
                  'callee': { 'type': 'Identifier', 'name': 'Tuple'},
-                 'arguments': [], # fixme
+                 'arguments': elts,
                  'comments': comments_for(node) }
-        self.cur_node = expr
         self.collect_output_node(expr)
-
+        
+        
+#        self.collect_array = True
+#        self.generic_visit(node)
+#        # where does our output go?
+#        expr = { "type": 'CallExpression',
+#                 'callee': { 'type': 'Identifier', 'name': 'Tuple'},
+#                 'arguments': [], # fixme
+#                 'comments': comments_for(node) }
+#        self.cur_node = expr
+#        self.collect_output_node(expr)
+#
     def visit_List(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-
-        self.collect_array = True
         self.generic_visit(node)
-        expr = { "type": 'ArrayExpression', 'elements': [], 'comments': comments_for(node) } # fixme
+        value = self.out_values.pop()
+        expr = { "type": 'ArrayExpression', 'elements': value['elts'], 'comments': comments_for(node) } # fixme
         self.collect_output_node(expr)
 
     def visit_Num(self,node):
         if not self.enabled:
             self.generic_visit(node)
             return
-        self.collect_output_node({ 'type': 'NumericLiteral', 'value': node.n });
+        self.collect_output_node({ 'type': 'Literal', 'value': node.n });
         self.generic_visit(node, False)
 
     def visit_Str(self,node):
@@ -316,6 +340,14 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, False)
 
     def visit_Attribute(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr = {'type':'MemberExpression','object':value['value'],
+                'property': { 'type': 'Identifier', 'name': value['attr']} }
+        self.logger.info(_('expression', expr=expr))
+        self.collect_output_node(expr)
+    
+    def oldvisit_Attribute(self, node):
         if not self.enabled:
             self.generic_visit(node)
             return
@@ -340,6 +372,14 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, False)
 
     def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        #self.collect_output_node(value['value'])
+        expr = {'type': 'UnaryExpression', 'operator': value['op'], 'argument': value['operand'],
+                'prefix': True}
+        self.collect_output_node(expr)
+
+    def oldvisit_UnaryOp(self, node):
         if not self.enabled:
             self.generic_visit(node)
             return
@@ -358,6 +398,16 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_node(expr)
 
     def visit_If(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        self.logger.info(_('value', value=value))
+        expr = { 'type': 'IfStatement', 'test': value['test'], 'consequent': { 'type': 'BlockStatement', 'body': value['body'] } }
+        if 'orelse' in value and len(value['orelse']):
+            expr['alternate'] = { 'type': 'BlockStatement', 'body': value['orelse'] }
+        self.collect_output_node(expr)
+        
+        
+    def oldvisit_If(self, node):
         if not self.enabled:
             self.generic_visit(node)
             return
@@ -384,34 +434,25 @@ class ValueCollector(ast.NodeVisitor):
         self.cur_node = expr
         self.collect_output_statement(expr)
 
-
     def visit_BoolOp(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-            return
-        vals = []
-        for value in node.values:
-            vc = ValueCollector('boolop.value', True, parent=self)
-            vc.do_visit(value)
-            v = vc.finished_output_nodes[-1].pop()
-            vals.append(v)
-
-        operator = None
-        if isinstance(node.op, ast.Or):
-            operator = '||'
-        elif isinstance(node.op, ast.And):
-            operator = '&&'
-        else:
-            print(astpretty.pformat(node))
-            exit(3)
-
-        left = vals.pop(0)
-        while len(vals):
-            left = { 'type': 'LogicalExpression', 'operator': operator, 'left': left, 'right': vals.pop(0) }
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        #self.collect_output_node(value['value'])
+        self.logger.info(_('value', value=value))
+        values = value['values']
+        left = values.pop(0)
+        while len(values):
+            left = { 'type': 'LogicalExpression', 'operator': value['op'], 'left': left, 'right': values.pop(0) }
         self.collect_output_node(left)
-        self.generic_visit(node, False)
 
     def visit_BinOp(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        self.logger.info(_('value', value=value))
+        expr = { 'type': 'BinaryExpression', 'operator': value['op'], 'left': value['left'], 'right': value['right'], 'comments': comments_for(node) }
+        self.collect_output_node(expr)
+
+    def oldvisit_BinOp(self, node):
         if not self.enabled:
             self.generic_visit(node)
             return
@@ -442,48 +483,33 @@ class ValueCollector(ast.NodeVisitor):
             return
         expr = None
         if node.value is None:
-            expr = { 'type': 'TSUndefinedKeyword' }
+            expr = { 'type': 'Identifier', 'name': 'undefined' }
         if node.value in (True, False):
             expr = { 'type': 'Literal', 'value': node.value }
         if expr is not None:
             self.cur_node = expr
             self.collect_output_node(expr)
 
-        self.generic_visit(node)
+        self.generic_visit(node, False)
 
     def visit_Dict(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-            return
-        keys = []
-        values = []
-        for key in node.keys:
-            kc = ValueCollector('key', True, parent=self)
-            kc.do_visit(key)
-            key2 = kc.finished_output_nodes[-1].pop()
-            keys.append(key2)
-        for value in node.values:
-            vc = ValueCollector('key', True, parent=self)
-            vc.do_visit(value)
-            value2 = vc.finished_output_nodes[-1].pop()
-            values.append(value2)
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        self.logger.info(_('value', value=value))
+        keys =value['keys']
+        values = value['values']
         props = []
         for i in range(0, len(keys)):
             props.append({'type': 'Property', 'key': keys[i], 'value': values[i] })
 
         expr = { 'type': 'ObjectExpression', 'properties': props, 'comments': comments_for(node) }
-        self.cur_node = expr
         self.collect_output_node(expr)
-        self.generic_visit(node, False)
-
 
     def visit_Call(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-            return
-
         self.generic_visit(node)
         value = self.out_values.pop()
+        self.logger.info(_('value', value=value))
+        
         expr = {'type': 'CallExpression',
                       'callee': value['func'],
                       'arguments': value['args'],
@@ -543,22 +569,33 @@ class ValueCollector(ast.NodeVisitor):
         # self.generic_visit(node)
 
     def visit_Starred(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-            return
-        self.collect_scalar = True
-        vc = ValueCollector('value', True, parent=self)
-        vc.do_visit(node.value)
-        argument = vc.finished_output_nodes[-1].pop()
-        expr = { 'type': 'SpreadElement', 'argument': argument, 'comments': comments_for(node) }
-        self.cur_node = expr
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr = { 'type': 'SpreadElement', 'argument': value['value'], 'comments': comments_for(node) }
         self.collect_output_node(expr)
-        self.generic_visit(node, False)
+        self.logger.info(_('value', value=value))
+#        self.collect_scalar = True
+#        vc = ValueCollector('value', True, parent=self)
+#        vc.do_visit(node.value)
+#        argument = vc.finished_output_nodes[-1].pop()
+#        expr = { 'type': 'SpreadElement', 'argument': argument, 'comments': comments_for(node) }
+#        self.cur_node = expr
+#        self.collect_output_node(expr)
+#        self.generic_visit(node, False)
 
     def visit_Subscript(self, node):
         self.generic_visit(node, True)
         value = self.out_values.pop()
-        expr = { 'type': 'MemberExpression', 'object': value['value'], 'property': value['slice']}
+        self.logger.info(_('value', value=value))
+        if 'slice' in value:
+            slice = value['slice']
+            if 'lower' in slice:
+                expr = { 'type':'CallExpression', 'callee': { 'type': 'MemberExpression', 'object': value['value'], 'property': { 'type':'Identifier', 'name': 'slice' } }, 'arguments': [value['slice']['lower'] or { 'type': 'Identifier', 'name': 'undefined' }, value['slice']['upper']], 'comments': comments_for(node) }
+            else:
+                expr = { 'type': 'MemberExpression', 'object': value['value'], 'property': value['slice']}
+            self.logger.info(_('expr', expr=expr))
+        else:
+            exit(2)
         self.collect_output_node(expr)
 
 
@@ -628,6 +665,22 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_node(expr)
         self.generic_visit(node, False)
     def visit_Compare(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        left = value['left']
+        ops = value['ops']
+        comparators = value['comparators']
+        while ops:
+            op = ops.pop()
+            comparator = comparators.pop()
+            left = { 'type': 'BinaryExpression',
+                     'left': left,
+                     'operator':op,
+                     'right': comparator }
+        expr = left
+        self.collect_output_node(expr)
+        
+    def oldvisit_Compare(self, node):
         if not self.enabled:
             self.generic_visit(node)
             return
@@ -640,6 +693,7 @@ class ValueCollector(ast.NodeVisitor):
             return
 
         assert len(node.ops) == 1, 'node ops 1'
+        # fix me!
         op = node.ops[0]
         operator = None
         negate = False
@@ -684,6 +738,33 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, False)
 
     def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr = { 'type': 'FunctionDeclaration', 'params': value['args'],
+                 'id':{ 'type':'Identifier', 'name': value['name']},
+                 'body':{ 'type':'BlockStatement', 'body': value['body'] } }
+        if self.in_class_def:
+            expr['params'] = expr['params'][1:]
+            expr['type'] = 'TSDeclareMethod'
+            expr['access'] = 'public'
+            if node.name == "__init__":
+                expr['kind'] = 'constructor'
+                expr['key'] = { 'type': 'Identifier', 'name': 'constructor' }
+
+            else:
+                expr['kind'] ='method'
+                expr['key'] = { 'type': 'Identifier', 'name': node.name }
+        else:
+            expr['name'] = node.name
+        
+        self.collect_output_node(expr)
+
+    def visit_arguments(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        self.collect_output_literal(value['args'])
+
+    def oldvisit_FunctionDef(self, node):
         assert isinstance(node.args, ast.arguments), 'args'
         if re.match('__', node.name):
             return
@@ -706,6 +787,7 @@ class ValueCollector(ast.NodeVisitor):
                  'id': { 'type': 'Identifier', 'name': node.name} ,
                  'body': { 'type': 'BlockStatement', 'body': self.result} }
         if self.in_class_def:
+            raise Exception('')
             expr['params'] = args[1:]
             expr['type'] = 'TSDeclareMethod'
             expr['access'] = 'public'
@@ -723,25 +805,59 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_statement(expr)
 
     def visit_arg(self, node):
-        if not self.enabled:
-            self.generic_visit(node)
-            return
-        self.collect_scalar = True
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        #self.collect_output_node(value['value'])
+        self.logger.info(_('value', node=ast.dump(node), value=value))
+        arg = value['arg']
+#        if isinstance(arg, dict) and arg['type'] in ('TSUndefinedKeyword',):
+#            arg = 'undefined'
+            
         expr = { 'type': 'Identifier',
-                 'name': node.arg,
+                 'name': arg,
                  'comments': comments_for(node) }
-        if node.annotation:
-            if isinstance(node.annotation, ast.Name):
-                anno_type = node.annotation.id;
-                if anno_type == 'str':
-                    annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
-                    expr['typeAnnotation'] = annotation
-
-        self.cur_node = expr
         self.collect_output_node(expr)
-        self.generic_visit(node, False)
+        
+#        if node.annotation:
+#            if isinstance(node.annotation, ast.Name):
+#                anno_type = node.annotation.id;
+#                if anno_type == 'str':
+#                    annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
+#                    expr['typeAnnotation'] = annotation
 
     def visit_ClassDef(self, node):
+        name = node.name
+        self.in_class_def = True
+        assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
+        class_ = Class(name, node=None)
+        self.current_namespace.store_name(name, class_)
+        self.major_element = class_
+        self.namespaces.append(self.current_namespace)
+        self.current_namespace = class_
+        self.generic_visit(node)
+        self.current_namespace = self.namespaces.pop()
+        self.in_class_def = False
+        value = self.out_values.pop()
+
+        self.logger.info(_('value', value=value))
+
+        assert not self.in_class_def
+
+
+        body = value['body']
+        for elem in class_.elems:
+            body.insert(0, elem.ast_node())
+
+        expr = { 'type': 'ClassDeclaration',
+                 'id': { 'type': 'Identifier', 'name': name },
+                 'body':  { 'type': 'ClassBody', 'body': body,
+                 }}
+        if len(value['bases']):
+            expr['superClass'] = value['bases'][0]
+
+        self.collect_output_literal(expr)
+    
+    def oldvisit_ClassDef(self, node):
         try:
             oldEnabled = self.enabled
             assert not self.in_class_def
@@ -803,6 +919,15 @@ class ValueCollector(ast.NodeVisitor):
         self.enabled = oldEnabled
 
     def visit_Return(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        if 'value' in value and value['value']:
+            expr = { 'type': 'ReturnStatement', 'argument': value['value'] }
+        else:
+            expr = { 'type': 'ReturnStatement', 'argument':None }
+        self.collect_output_statement(expr)
+        
+    def oldvisit_Return(self, node):
         try:
             oldEnabled = self.enabled
             self.enabled = True
@@ -845,7 +970,11 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Raise(self, node):
         self.generic_visit(node)
         value = self.out_values[-1]
-        expr = { 'type': 'ThrowStatement',  'argument': value['exc'] }
+        exc = value['exc']
+        if exc:
+            expr = { 'type': 'ThrowStatement',  'argument': value['exc'] }
+        else:
+            expr = { 'type': 'ThrowStatement' }
         self.collect_output_statement(expr)
 
     def visit_For(self, node):
@@ -854,8 +983,36 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_Try(self, node):
         self.generic_visit(node)
-        #expr = { 'type': 'TryStatement', block:
-        return None
+        value = self.out_values.pop()
+        self.logger.info(_('value', value=value))
+        expr = { 'type': 'TryStatement', 'block': { 'type':'BlockStatement', 'body': value['body']}}
+        self.collect_output_statement(expr)
+
+    def visit_ExceptHandler(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr = { 'type':'CatchClause', 'param': { 'type':'Identifier','name': value['name'] }, 'body': { 'type': 'BlockStatement', 'body': value['body'] }}
+        self.collect_output_node(expr)
+
+
+    def visit_Eq(self, node):
+        self.collect_output_literal('===')
+    def visit_Lt(self, node):
+        self.collect_output_literal('<')
+    def visit_LtE(self, node):
+        self.collect_output_literal('<=')
+    def visit_Gt(self, node):
+        self.collect_output_literal('>')
+    def visit_GtE(self, node):
+        self.collect_output_literal('>=')
+    def visit_Mod(self, node):
+        self.collect_output_literal('%')
+    def visit_And(self, node):
+        self.collect_output_literal('&&')
+    def visit_Or(self, node):
+        self.collect_output_literal('||')
+    def visit_Add(self, node):
+        self.collect_output_literal('+')
 
     def do_visit(self, node, *args, **kwargs):
         self.logger.debug(_('do_visit(%s)' % node_repr(node)))
@@ -866,22 +1023,27 @@ class ValueCollector(ast.NodeVisitor):
     def __repr__(self):
         return '%s<%r>' % (self.__class__.__name__, self.collected_value)
     def advance_level(self, node):
-        self.logger.debug(_('Advance level.', cur_level=self.level, new_level=self.level + 1))
+#        self.logger.debug(_('Advance level.', cur_level=self.level, new_level=self.level + 1))
         self.output_nodes.append([])
         self.finished_output_statements.append([])
         self.level += 1
 
     def retreat_level(self):
-        self.logger.debug(_('Retreat level.', cur_level=self.level, new_level=self.level - 1))
+#        self.logger.debug(_('Retreat level.', cur_level=self.level, new_level=self.level - 1))
         self.finished_output_nodes.append(self.output_nodes.pop())
         self.finished_output_statements.pop()
         self.level -= 1
 
+    def collect_output_literal(self, literal):
+        self.output_nodes[-1].append(literal)
     def collect_output_node(self, output_node):
         # do something useful with this.
-        if not check_ast(output_node):
-            self.logger.error(_('AST node is invalid', astnode=output_node))
-            raise ApplicationError('Invalid ast node',node=output_node);
+        correct = None
+        try:
+            correct = check_ast(output_node)
+        except Excepton as ex:
+            logger.error(str(ex))
+
         self.output_nodes[-1].append(output_node)
     def collected_output_nodes(self):
         return self.finished_output_nodes[-1]
@@ -893,7 +1055,7 @@ class ValueCollector(ast.NodeVisitor):
         return
 
         if not check_ast(stmt):
-            self.logger.error(_('AST node is invalid', astnode=stmt))
+            self.logger.error(_('AST node is invalid', in_nodes=self.in_nodes, astnode=stmt))
             raise ApplicationError('Invalid ast node',node=stmt);
         self.finished_output_statements[-1].append(stmt)
 
