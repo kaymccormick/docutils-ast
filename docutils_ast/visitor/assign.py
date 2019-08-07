@@ -57,10 +57,6 @@ class ValueCollector(ast.NodeVisitor):
     collected_value = None
     main_node = None
     body = None
-    collect_array = None
-    collect_scalar = None
-    main_collect_array = None
-    main_collect_scalar = None
     stack = None
     in_stmt = False
     do_camelcase = False
@@ -129,8 +125,6 @@ class ValueCollector(ast.NodeVisitor):
         if self.enabled:
             if self.main_node is None:
                 self.main_node = node
-                self.main_collect_array = self.collect_array
-                self.main_collect_scalar = self.collect_scalar
         if callSuper:
             self.cur_values.append({})
             for field, value in ast.iter_fields(node):
@@ -200,6 +194,60 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         values = self.cur_values[-1]
 
+    def visit_ClassDef(self, node):
+        name = node.name
+        self.in_class_def = True
+        assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
+        class_ = Class(name, node=None)
+        self.current_namespace.store_name(name, class_)
+        self.major_element = class_
+        self.namespaces.append(self.current_namespace)
+        self.current_namespace = class_
+        self.generic_visit(node)
+        self.current_namespace = self.namespaces.pop()
+        self.in_class_def = False
+        value = self.out_values.pop()
+
+#        self.logger.info(_('value', value=value))
+
+        assert not self.in_class_def
+
+
+        body = value['body']
+        for elem in class_.elems:
+            body.insert(0, elem.ast_node())
+
+        expr = { 'type': 'ClassDeclaration',
+                 'id': { 'type': 'Identifier', 'name': name },
+                 'body':  { 'type': 'ClassBody', 'body': body,
+                 }}
+        if len(value['bases']):
+            expr['superClass'] = value['bases'][0]
+
+        self.collect_output_literal(expr)
+    
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        expr = { 'type': 'FunctionDeclaration', 'params': value['args'],
+                 'id':{ 'type':'Identifier', 'name': value['name']},
+                 'body':{ 'type':'BlockStatement', 'body': value['body'] } }
+        if self.in_class_def:
+            expr['params'] = expr['params'][1:]
+            expr['type'] = 'TSDeclareMethod'
+            expr['access'] = 'public'
+            if node.name == "__init__":
+                expr['kind'] = 'constructor'
+                expr['key'] = { 'type': 'Identifier', 'name': 'constructor' }
+
+            else:
+                expr['kind'] ='method'
+                expr['key'] = { 'type': 'Identifier', 'name': node.name }
+        else:
+            expr['name'] = node.name
+        
+        self.collect_output_node(expr)
+
     def visit_Index(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -208,7 +256,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Lambda(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        #self.collect_output_node(value['value'])
         self.logger.info(_('value', value=value))
         if isinstance(value['body'], dict):
             body = value['body'];
@@ -597,11 +644,6 @@ class ValueCollector(ast.NodeVisitor):
         #              'arguments': args,
         #              'comments': comments_for(node)
         #     }
-        # self.collect_scalar = True
-        # assert expr
-        # self.cur_node = expr
-        # self.collect_output_node(expr)
-        # self.generic_visit(node)
 
     def visit_Starred(self, node):
         self.generic_visit(node)
@@ -631,7 +673,6 @@ class ValueCollector(ast.NodeVisitor):
         if not self.enabled:
             self.generic_visit(node)
             return
-        self.collect_scalar = True
         expr = { 'type': 'TSUndefinedKeyword', 'comments': comments_for(node) }
         self.collect_output_node(expr)
         self.generic_visit(node, False)
@@ -639,7 +680,6 @@ class ValueCollector(ast.NodeVisitor):
         if not self.enabled:
             self.generic_visit(node)
             return
-        self.collect_scalar = True
         expr = { 'type': 'TSUndefinedKeyword' }
         self.cur_node = expr
         self.collect_output_node(expr)
@@ -668,7 +708,6 @@ class ValueCollector(ast.NodeVisitor):
             expr = { 'type': 'TSUndefinedKeyword' }
             self.cur_node = expr
             self.collect_output_node(expr)
-            self.collect_scalar = True
             self.generic_visit(node)
             return
 
@@ -714,30 +753,7 @@ class ValueCollector(ast.NodeVisitor):
             expr = { 'type': 'UnaryExpression', 'operator': '!', 'prefix': True, 'operand': expr }
         self.cur_node = expr
         self.collect_output_node(expr)
-        self.collect_scalar = True
         self.generic_visit(node, False)
-
-    def visit_FunctionDef(self, node):
-        self.generic_visit(node)
-        value = self.out_values.pop()
-        expr = { 'type': 'FunctionDeclaration', 'params': value['args'],
-                 'id':{ 'type':'Identifier', 'name': value['name']},
-                 'body':{ 'type':'BlockStatement', 'body': value['body'] } }
-        if self.in_class_def:
-            expr['params'] = expr['params'][1:]
-            expr['type'] = 'TSDeclareMethod'
-            expr['access'] = 'public'
-            if node.name == "__init__":
-                expr['kind'] = 'constructor'
-                expr['key'] = { 'type': 'Identifier', 'name': 'constructor' }
-
-            else:
-                expr['kind'] ='method'
-                expr['key'] = { 'type': 'Identifier', 'name': node.name }
-        else:
-            expr['name'] = node.name
-        
-        self.collect_output_node(expr)
 
     def visit_arguments(self, node):
         self.generic_visit(node)
@@ -796,38 +812,6 @@ class ValueCollector(ast.NodeVisitor):
                  'comments': comments_for(node) }
         self.collect_output_node(expr)
 
-    def visit_ClassDef(self, node):
-        name = node.name
-        self.in_class_def = True
-        assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
-        class_ = Class(name, node=None)
-        self.current_namespace.store_name(name, class_)
-        self.major_element = class_
-        self.namespaces.append(self.current_namespace)
-        self.current_namespace = class_
-        self.generic_visit(node)
-        self.current_namespace = self.namespaces.pop()
-        self.in_class_def = False
-        value = self.out_values.pop()
-
-#        self.logger.info(_('value', value=value))
-
-        assert not self.in_class_def
-
-
-        body = value['body']
-        for elem in class_.elems:
-            body.insert(0, elem.ast_node())
-
-        expr = { 'type': 'ClassDeclaration',
-                 'id': { 'type': 'Identifier', 'name': name },
-                 'body':  { 'type': 'ClassBody', 'body': body,
-                 }}
-        if len(value['bases']):
-            expr['superClass'] = value['bases'][0]
-
-        self.collect_output_literal(expr)
-    
     def oldvisit_ClassDef(self, node):
         try:
             oldEnabled = self.enabled
