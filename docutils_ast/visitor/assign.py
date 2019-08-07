@@ -12,6 +12,26 @@ from docutils_ast.util import check_ast, ApplicationError
 _ = StructuredMessage
 from ast import AST
 
+operators = { 'LtE': '<=',
+              'Lt':'<',
+              'Gt': '>',
+              'Eq':'===',
+              'NotEq': '!==',
+              'In': 'in',
+              'GtE': '>=',
+              'NotIn': (1, 'in'),
+              'Mod': '%',
+              'Add': '+',
+              'Sub':'-',
+              'Mult': '*',
+              'Div': '/',
+              'USub': '-',
+              'UAdd': '+',
+              'Not': '!',
+              'BitOr': '|',
+              'BitAnd': '&',
+}
+
 def node_repr(node):
     r = ast.dump(node)
     if len(r) > 60:
@@ -131,6 +151,10 @@ class ValueCollector(ast.NodeVisitor):
 
                     self.cur_values[-1][field] = self.output_nodes[-1]
                     # we haven't set cur_value
+                elif isinstance(value, (ast.cmpop, ast.operator, ast.unaryop)):
+                    assert value.__class__.__name__ in operators, value.__class__.__name__
+                    op = operators[value.__class__.__name__]
+                    self.cur_values[-1][field] = op
                 elif isinstance(value, ast.expr_context):
                     pass
                 elif isinstance(value, AST):
@@ -181,6 +205,19 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         self.collect_output_node(value['value'])
         self.logger.info(_('value', value=value))
+    def visit_Lambda(self, node):
+        self.generic_visit(node)
+        value = self.out_values.pop()
+        #self.collect_output_node(value['value'])
+        self.logger.info(_('value', value=value))
+        if isinstance(value['body'], dict):
+            body = value['body'];
+        else:
+            body = {'type': 'BlockStatement', 'body': value['body']}
+
+        expr = { 'type': 'ArrowFunctionExpression', 'params': value['args'],
+                     'body': body }
+        self.collect_output_node(expr)
     def visit_Yield(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -304,17 +341,6 @@ class ValueCollector(ast.NodeVisitor):
                  'comments': comments_for(node) }
         self.collect_output_node(expr)
         
-        
-#        self.collect_array = True
-#        self.generic_visit(node)
-#        # where does our output go?
-#        expr = { "type": 'CallExpression',
-#                 'callee': { 'type': 'Identifier', 'name': 'Tuple'},
-#                 'arguments': [], # fixme
-#                 'comments': comments_for(node) }
-#        self.cur_node = expr
-#        self.collect_output_node(expr)
-#
     def visit_List(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -336,13 +362,15 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, False)
 
     def visit_Name(self, node):
-        if not self.enabled:# or not isinstance(node.ctx, ast.Load):
-            self.generic_visit(node)
-            return
         if node.id == 'self':
             expr= { 'type': 'ThisExpression' }
         else:
+            name = node.id
             expr= { 'type': 'Identifier', 'name': camelcase(node.id) if self.do_camelcase and not re.match('__', node.id) else node.id }
+            var = self.find_var(expr)
+            if var is None:
+                self.logger.debug(_('Registering variable for', node=expr))
+                self.register_var(expr)
         self.collect_output_node(expr)
         self.generic_visit(node, False)
 
@@ -581,14 +609,6 @@ class ValueCollector(ast.NodeVisitor):
         expr = { 'type': 'SpreadElement', 'argument': value['value'], 'comments': comments_for(node) }
         self.collect_output_node(expr)
         self.logger.info(_('value', value=value))
-#        self.collect_scalar = True
-#        vc = ValueCollector('value', True, parent=self)
-#        vc.do_visit(node.value)
-#        argument = vc.finished_output_nodes[-1].pop()
-#        expr = { 'type': 'SpreadElement', 'argument': argument, 'comments': comments_for(node) }
-#        self.cur_node = expr
-#        self.collect_output_node(expr)
-#        self.generic_visit(node, False)
 
     def visit_Subscript(self, node):
         self.generic_visit(node, True)
@@ -606,55 +626,6 @@ class ValueCollector(ast.NodeVisitor):
         if not expr:
             raise Error('no node')
         self.collect_output_node(expr)
-
-
-        # if not self.enabled:
-        #     self.generic_visit(node)
-        #     return
-        # self.collect_scalar = True
-        # vc = ValueCollector('value', True, parent=self)
-        # vc.do_visit(node.value)
-        # value = vc.finished_output_nodes[-1].pop()
-        #
-        # index = None
-        # if isinstance(node.slice, ast.Index):
-        #     vc5 = ValueCollector('value', True, parent=self)
-        #     vc5.do_visit(node.slice.value)
-        #     index = vc5.finished_output_nodes[-1].pop()
-        #     expr = { 'type': 'MemberExpression', 'object': value, 'property': index, 'comments': comments_for(node) }
-        # elif isinstance(node.slice, ast.Slice):
-        #     lower = {'type':'NumericLiteral', 'value': 0}
-        #     if node.slice.lower is not None:
-        #         vc2 = ValueCollector('lower', True, parent=self)
-        #         vc2.do_visit(node.slice.lower)
-        #         lower = vc2.finished_output_nodes[-1].pop()
-        #
-        #     upper = None
-        #     if node.slice.upper is not None:
-        #         vc3 = ValueCollector('upper', True, parent=self)
-        #         try:
-        #             vc3.do_visit(node.slice.upper)
-        #         except Exception as ex:
-        #             print(ex)
-        #             print('zzz', astpretty.pformat(node))
-        #             exit(10)
-        #
-        #             upper = vc.finished_output_nodes[-1].pop()
-        #
-        #     step = None
-        #     if node.slice.step is not None:
-        #         vc4 = ValueCollector('step', True, parent=self)
-        #         vc4.do_visit(node.slice.step)
-        #         step = vc4.finished_output_nodes[-1].pop()
-        #
-        #     args = [lower]
-        #     if upper is not None:
-        #         args.append(upper)
-        #
-        #     expr = { 'type':'CallExpression', 'callee': { 'type': 'MemberExpression', 'object': value, 'property': { 'type':'Identifier', 'name': 'slice' } }, 'arguments': args, 'comments': comments_for(node) }
-        #
-        # self.collect_output_node(expr)
-        # self.generic_visit(node, False)
 
     def visit_ListComp(self, node):
         if not self.enabled:
@@ -819,20 +790,11 @@ class ValueCollector(ast.NodeVisitor):
         #self.collect_output_node(value['value'])
         self.logger.info(_('value', node=ast.dump(node), value=value))
         arg = value['arg']
-#        if isinstance(arg, dict) and arg['type'] in ('TSUndefinedKeyword',):
-#            arg = 'undefined'
             
         expr = { 'type': 'Identifier',
                  'name': arg,
                  'comments': comments_for(node) }
         self.collect_output_node(expr)
-        
-#        if node.annotation:
-#            if isinstance(node.annotation, ast.Name):
-#                anno_type = node.annotation.id;
-#                if anno_type == 'str':
-#                    annotation = { 'type': 'TSTypeAnnotation', 'typeAnnotation': { 'type': 'TSStringKeyword'} }
-#                    expr['typeAnnotation'] = annotation
 
     def visit_ClassDef(self, node):
         name = node.name
@@ -1011,39 +973,38 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_node(expr)
 
 
-    def visit_Eq(self, node):
-        self.collect_output_literal('===')
-    def visit_Lt(self, node):
-        self.collect_output_literal('<')
-    def visit_LtE(self, node):
-        self.collect_output_literal('<=')
-    def visit_Gt(self, node):
-        self.collect_output_literal('>')
-    def visit_GtE(self, node):
-        self.collect_output_literal('>=')
-    def visit_Mod(self, node):
-        self.collect_output_literal('%')
-    def visit_And(self, node):
-        self.collect_output_literal('&&')
-    def visit_Or(self, node):
-        self.collect_output_literal('||')
-    def visit_Add(self, node):
-        self.collect_output_literal('+')
-    def visit_Sub(self, node):
-        self.collect_output_literal('-')
-    def visit_USub(self, node):
-        self.collect_output_literal('-')
-    def visit_BitOr(self, node):
-        self.collect_output_literal('|')
-
+#    def visit_Eq(self, node):
+#        self.collect_output_literal('===')
+#    def visit_Lt(self, node):
+#        self.collect_output_literal('<')
+#    def visit_LtE(self, node):
+#        self.collect_output_literal('<=')
+#    def visit_Gt(self, node):
+#        self.collect_output_literal('>')
+#    def visit_GtE(self, node):
+#        self.collect_output_literal('>=')
+#    def visit_Mod(self, node):
+#        self.collect_output_literal('%')
+#    def visit_And(self, node):
+#        self.collect_output_literal('&&')
+#    def visit_Or(self, node):
+#        self.collect_output_literal('||')
+#    def visit_Add(self, node):
+#        self.collect_output_literal('+')
+#    def visit_Sub(self, node):
+#        self.collect_output_literal('-')
+#    def visit_USub(self, node):
+#        self.collect_output_literal('-')
+#    def visit_BitOr(self, node):
+#        self.collect_output_literal('|')
+#
     def do_visit(self, node, *args, **kwargs):
         self.logger.debug(_('do_visit(%s)' % node_repr(node)))
-#        self.advance_level(node)
         r = self.visit(node, *args, **kwargs)
-#        self.retreat_level()
 
     def __repr__(self):
         return '%s<%r>' % (self.__class__.__name__, self.collected_value)
+
     def advance_level(self, node):
 #        self.logger.debug(_('Advance level.', cur_level=self.level, new_level=self.level + 1))
         self.output_nodes.append([])
@@ -1085,5 +1046,3 @@ class ValueCollector(ast.NodeVisitor):
         pass
     def depart_field(self,node, field):
         pass
-
-
