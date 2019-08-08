@@ -51,7 +51,6 @@ def comments_for(node, docstring=None):
     return [{'type': 'CommentBlock', 'value': 'line = %d' % node.lineno }]
 
 class ValueCollector(ast.NodeVisitor):
-    in_class_def = False
     enabled = False
     disable_perm = False
     data = None
@@ -204,7 +203,6 @@ class ValueCollector(ast.NodeVisitor):
         elem = container.elems['Class'][node.name]
         self.entities.append(elem)
         name = node.name
-        self.in_class_def = True
         assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
         class_ = Class(name, node=None)
         self.current_namespace.store_name(name, class_)
@@ -214,13 +212,9 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         self.entities.pop()
         self.current_namespace = self.namespaces.pop()
-        self.in_class_def = False
         value = self.out_values.pop()
 
 #        self.logger.debug(_('value', value=value))
-
-        assert not self.in_class_def
-
 
         body = value['body']
 #        for elem in class_.elems:
@@ -793,46 +787,6 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         self.collect_output_literal(value['args'])
 
-    def oldvisit_FunctionDef(self, node):
-        assert isinstance(node.args, ast.arguments), 'args'
-        if re.match('__', node.name):
-            return
-        args = []
-        i = 0
-        for arg in node.args.args:
-            v = ValueCollector('functionDef(%s, arg[%d])' % (node.name, i),
-                               True, parent=self)
-            i += 1
-            v.do_visit(arg)
-            args.append(v.finished_output_nodes[-1].pop())
-
-        oldEnabled = self.enabled
-        self.enabled = True
-        self.generic_visit(node, True, True)
-        self.enabled = oldEnabled
-
-
-        expr = { 'type': 'FunctionDeclaration', 'params': args,
-                 'id': { 'type': 'Identifier', 'name': node.name} ,
-                 'body': { 'type': 'BlockStatement', 'body': self.result} }
-        if self.in_class_def:
-            raise Exception('')
-            expr['params'] = args[1:]
-            expr['type'] = 'TSDeclareMethod'
-            expr['access'] = 'public'
-            if node.name == "__init__":
-                expr['kind'] = 'constructor'
-                expr['key'] = { 'type': 'Identifier', 'name': 'constructor' }
-
-            else:
-                expr['kind'] ='method'
-                expr['key'] = { 'type': 'Identifier', 'name': node.name }
-        else:
-            expr['name'] = node.name
-
-        self.cur_node = expr
-        self.collect_output_statement(expr)
-
     def visit_arg(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
@@ -844,47 +798,6 @@ class ValueCollector(ast.NodeVisitor):
                  'name': arg,
                  'comments': comments_for(node) }
         self.collect_output_node(expr)
-
-    def oldvisit_ClassDef(self, node):
-        try:
-            oldEnabled = self.enabled
-            assert not self.in_class_def
-            self.in_class_def = True
-            self.enabled = True
-
-            expr = { 'type': 'ClassDeclaration',
-                     'id': { 'type': 'Identifier', 'name': node.name }}
-
-            assert not self.current_namespace.name_exists(node.name), 'name %s exists in scope' % node.name
-            class_ = Class(node.name, node=expr)
-            self.current_namespace.store_name(node.name, class_)
-            self.major_element = class_
-            self.namespaces.append(self.current_namespace)
-            self.current_namespace = class_
-            # collect the body
-            self.cur_node = expr
-            self.generic_visit(node, True, True)
-            self.current_namespace = self.namespaces.pop()
-            self.enabled = oldEnabled
-
-            body = self.result
-            for elem in class_.elems:
-                body.insert(0, elem.ast_node())
-
-            expr['body'] = { 'type': 'ClassBody', 'body': body }
-            if len(node.bases):
-                base = node.bases[0]
-                v = ValueCollector('', True, do_camelcase=False, parent=self)
-                v.do_visit(base)
-                b = v.finished_output_nodes[-1].pop()
-                expr['superClass'] = b
-
-            self.in_class_def = False
-            self.collect_output_statement(expr)
-        except Exception as ex:
-            self.logger.error(_('major element is %r' % self.major_element))
-            raise ex
-            exit(23)
 
     def visit_Expr(self, node):
         oldEnabled = self.enabled
