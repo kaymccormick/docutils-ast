@@ -2,10 +2,11 @@ import sys
 import json
 import symtable
 import ast
+import astor
 from docutils_ast.model import Module
 from docutils_ast.visitor.assign import ValueCollector
 from docutils_ast.visitor.collect import Collector
-from docutils_ast.transform import Transform1
+from docutils_ast.transform import Transform1, Transform2
 
 from docutils_ast.logging import StructuredMessage
 _ = StructuredMessage
@@ -26,10 +27,16 @@ class CodeTranslator:
             with open(file, 'r') as source:
                 code = source.read()
     
+        the_module = Module(file=file)
+
         sym_table = symtable.symtable(code,file, 'exec')
         tree = ast.parse(code)
+        tree = (Transform1(module=the_module, logger=self.logger, sym_table=sym_table)).visit(tree)
+        code = astor.to_source(tree)
+        with open('temp.py', 'w' ) as f:
+            f.write(code)
     
-        the_module = Module(file=file)
+        sym_table = symtable.symtable(code, file, 'exec')
         cur = sym_table
         sym_tables = {}
         def proc_sym_table(st):
@@ -49,12 +56,13 @@ class CodeTranslator:
             return o
                 
         out = proc_sym_table(cur)
-    
+
         collector = Collector(module=the_module, logger=self.logger, sym_table=sym_table)
+        print(tree)
         collector.visit(tree)
+        tree = (Transform2(module=the_module, logger=self.logger, sym_table=sym_table, collector=collector)).visit(tree)
         for import_ in collector.imports:
             self.logger.info(_(None, import_=str(import_)))
-        tree = (Transform1(module=the_module, logger=self.logger, sym_table=sym_table, collector=collector)).visit(tree)
     
         analyzer = ValueCollector("main", True, top_level=True, module=the_module, logger=self.logger, sym_table=sym_table, kinds=self.kinds, named_types=self.named_types);
         analyzer.do_visit(tree)

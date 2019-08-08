@@ -13,6 +13,8 @@ def main(*argv, logger_name='translate.py'):
     parser.add_argument('-i', '--input-filename')
     parser.add_argument('-j', '--json-filename')
     parser.add_argument('-o', '--output-filename')
+    parser.add_argument('--no-translate', action='store_true')
+    
     if not len(argv):
         argv = sys.argv[1:]
     args = parser.parse_args(argv)

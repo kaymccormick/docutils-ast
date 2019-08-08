@@ -16,7 +16,15 @@ class ASTValue(Value):
         return self.value
     
 class ModelElement:
-    pass
+    def __init__(self):
+        self.elems = {}
+
+    def add(self, elem):
+        self.elems.setdefault(elem.__class__.__name__, {})[elem.name] = elem
+
+
+#    def __repr__(self):
+#        return '<%s elems=%s>' % (self.__class__.__name__, ', '.join(map(repr, self.elems)))
 
 class NamedElement:
     pass
@@ -25,7 +33,6 @@ class Namespace(ModelElement):
     def __init__(self):
         super().__init__()
         self.namespace = {}
-
 
     def name_exists(self, name: str) -> bool:
         return name in self.namespace
@@ -44,17 +51,12 @@ class Namespace(ModelElement):
         self.namespace[name] = { 'elem': elem }
 
 class Class(Namespace, NamedElement):
-    def __init__(self, name: str, node=None):
+    def __init__(self, name: str, node=None, module=None, sym_table=None):
         super().__init__()
         self.name = name
         self.node = node
-        self.elems = []
-
-    def add(self, elem):
-        self.elems.append(elem)
-
-    def __repr__(self):
-        return 'Class<%s>' % self.name
+        self.module = module
+        self.sym_table = sym_table
 
 class Module(Namespace):
     def __init__(self, file: str = None):
@@ -72,5 +74,23 @@ class ClassProperty(NamedElement):
             d['value'] = self.value.ast_node()
         return d
 
-#class Import(ModelElement):
-#    def __init__(self, module: Module,
+class Import(ModelElement):
+    def __init__(self, name, asname, module=None):
+        pass
+
+class Function(ModelElement, NamedElement):
+    def __init__(self, name, container):
+        super().__init__()
+        self.name = name
+        self.container = container
+
+class Method(Function):
+    pass
+
+class Variable(ModelElement, NamedElement):
+    def __init__(self, name, container, kind, symbol):
+        super().__init__()
+        self.name = name
+        self.container = container
+        self.symbol = symbol
+
