@@ -220,8 +220,8 @@ class ValueCollector(ast.NodeVisitor):
         elem = container.elems['Class'][node.name]
         self.entities.append(elem)
         name = node.name
-        assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
-        class_ = Class(name, node=None)
+#        assert not self.current_namespace.name_exists(name), 'name %s exists in scope' % name
+        class_ = elem
         self.current_namespace.store_name(name, class_)
         self.major_element = class_
         self.namespaces.append(self.current_namespace)
@@ -234,8 +234,8 @@ class ValueCollector(ast.NodeVisitor):
 #        self.logger.debug(_('value', value=value))
 
         body = value['body']
-#        for elem in class_.elems:
-#            body.insert(0, elem.ast_node())
+        for elem in class_.elems.setdefault('ClassProperty', {}).values():
+            body.insert(0, elem.ast_node())
 
         expr = { 'type': 'ClassDeclaration',
                  'id': { 'type': 'Identifier', 'name': name },
@@ -399,8 +399,12 @@ class ValueCollector(ast.NodeVisitor):
     def process_target(self, target, value):
         annotation = None
         new_var = False
-        if target['type'] == 'Identifier':
-            n = target['name']
+        check = target
+        if target['type'] == 'MemberExpression' and target['object']['type'] == 'ThisExpression':
+            check = target['property']
+
+        if True:
+            n = check['name']
             if issubclass(self.in_nodes[-1], ast.ClassDef):
                 # assignment is in class body, create property
                 self.logger.debug(_('in class, create property'))
@@ -440,18 +444,26 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_node(expr)
 
     def visit_Num(self,node):
-        self.collect_output_node({ 'type': 'Literal', 'value': node.n });
+        self.collect_output_node({ 'type': 'NumericLiteral', 'value': node.n });
         self.generic_visit(node, False)
 
     def visit_Str(self,node):
-        expr = { 'type':'NewExpression', 'callee': {'type': 'MemberExpression','object':{'type': 'Identifier', 'name': 'Py'},'property':{'type':'Identifier','name':'PyStr'}}, 'arguments': [ { 'type': 'StringLiteral', 'value': node.s } ] }
-        self.collect_output_node(expr)
-        self.generic_visit(node, False)
+        if issubclass(self.in_nodes[-1], ast.Dict) and self.cur_field == 'keys':
+            self.collect_output_node({ 'type': 'StringLiteral', 'value': node.s})
+        elif issubclass(self.in_nodes[-1], ast.Expr) and issubclass(self.in_nodes[-2], (ast.Module, ast.FunctionDef,ast.ClassDef)):
+            self.collect_output_literal(None)
+        else:
+            expr = { 'type':'NewExpression', 'callee': {'type': 'MemberExpression','object':{'type': 'Identifier', 'name': 'Py'},'property':{'type':'Identifier','name':'PyStr'}}, 'arguments': [ { 'type': 'StringLiteral', 'value': node.s } ] }
+            self.logger.info(_('i am in', in_nodes=list(map(str, self.in_nodes))))
+            self.collect_output_node(expr)
+            self.generic_visit(node, False)
 
     def visit_Name(self, node):
         if node.id == 'self':
             expr= { 'type': 'ThisExpression' }
         else:
+            if node.id == 'Exception':
+                node.id = 'Error'
             name = node.id
             expr= { 'type': 'Identifier', 'name': camelcase(node.id) if self.do_camelcase and not re.match('__', node.id) else node.id }
             var = self.find_var(expr)
@@ -492,24 +504,13 @@ class ValueCollector(ast.NodeVisitor):
     def visit_UnaryOp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        #self.collect_output_node(value['value'])
-        expr = {'type': 'UnaryExpression', 'operator': value['op'], 'argument': value['operand'],
-                'prefix': True}
-        self.collect_output_node(expr)
-
-    def oldvisit_UnaryOp(self, node):
-        operator = None
-        if isinstance(node.op, ast.Not):
-            operator = '!'
-        elif isinstance(node.op, ast.USub):
-            operator = '-'
+        operand = value['operand']
+        if operand['type'] == 'NumericLiteral' and value['op'] == '-':
+            expr = operand;
+            expr['value'] = -1 * expr['value']
         else:
-            self.logger.error(_('%s' % astpretty.pformat(node.value)))
-            exit(5)
-
-        self.generic_visit(node)
-        # now we need to find the output from our descent
-        expr = { 'type': 'UnaryExpression', 'operator': operator, 'argument': self.finished_output_nodes[-1].pop(), 'prefix': True }
+            expr = {'type': 'UnaryExpression', 'operator': value['op'], 'argument': value['operand'],
+                    'prefix': True}
         self.collect_output_node(expr)
 
     def visit_If(self, node):
@@ -688,14 +689,21 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         self.logger.debug(_('value', value=value))
         if 'slice' in value:
-            slice = value['slice']
-            if 'lower' in slice:
-                expr = { 'type':'CallExpression', 'callee': { 'type': 'MemberExpression', 'object': value['value'], 'property': { 'type':'Identifier', 'name': 'slice' } }, 'arguments': [value['slice']['lower'] or { 'type': 'Identifier', 'name': 'undefined' }, value['slice']['upper'] or { 'type': 'Identifier', 'name': 'undefined' }], 'comments': comments_for(node) }
+            slice_ = value['slice']
+            if 'lower' in slice_:
+                expr = { 'type':'CallExpression', 'callee': { 'type': 'MemberExpression', 'object': value['value'],
+                                                              'property': { 'type':'Identifier', 'name': 'slice' } },
+                         'arguments': [slice_['lower'] or { 'type': 'Identifier', 'name': 'undefined' },
+                                       slice_['upper'] or { 'type': 'Identifier', 'name': 'undefined' }],
+                         'comments': comments_for(node) }
             else:
-                expr = { 'type': 'MemberExpression', 'object': value['value'], 'property': value['slice']}
-            self.logger.debug(_('expr', expr=expr))
-        else:
-            raise Exception('')
+                v = value['value']
+                prop = slice_
+                if 'type' in slice_ and slice_['type'] == 'NumericLiteral' and slice_['value'] < 0:
+                    prop = { 'type': 'BinaryExpression', 'left': { 'type': 'MemberExpression', 'object': v,
+                                                               'property': identifier('length') },
+                          'right': slice_, 'operator': '+' }
+                expr = {'type': 'MemberExpression', 'computed': True, 'object': value['value'], 'property': prop }
         if not expr:
             raise Exception('no node')
         self.collect_output_node(expr)
@@ -815,11 +823,14 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node, True)
         value = self.out_values.pop()
         the_expr = value['value']
-        expr = { 'type': 'ExpressionStatement',
-                 'expression': the_expr  }
-        if the_expr['type'] == 'StringLiteral':
-            ## standalone doc string
-            comments = comments_for(node, the_expr['value'])
+        if the_expr is None:
+            expr = { 'type': 'EmptyStatement' }
+        else:
+            expr = { 'type': 'ExpressionStatement',
+                     'expression': the_expr  }
+            if the_expr['type'] == 'StringLiteral':
+                ## standalone doc string
+                comments = comments_for(node, the_expr['value'])
 #            if not len(self.cur_values[-1][field]):
 #                expr = { 'type': 'EmptyStatement', 'comments': comments }
 #            else:
@@ -861,13 +872,13 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_Raise(self, node):
         self.generic_visit(node)
-        value = self.out_values[-1]
+        value = self.out_values.pop()
         exc = value['exc']
         if exc:
             expr = { 'type': 'ThrowStatement',  'argument': value['exc'] }
         else:
             expr = { 'type': 'ThrowStatement' }
-        self.collect_output_statement(expr)
+        self.collect_output_literal(expr)
 
     def visit_For(self, node):
         self.generic_visit(node)
@@ -885,7 +896,33 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         value = self.out_values.pop()
         self.logger.debug(_('value', value=value))
-        expr = { 'type': 'TryStatement', 'block': { 'type':'BlockStatement', 'body': value['body']}}
+        # e.g.: <class 'dict'>: {'body': [], 'handlers': [{'type': {'type': 'Identifier', 'name': 'TypeError'}, 'name': 'ex', 'body': [{'type': 'ThrowStatement', 'argument': {'type': 'Identifier', 'name': 'ex'}}]}, {'type': {'type': 'Identifier', 'name': 'IndexError'}, 'name': 'ex', 'body': [{'type': 'ThrowStatement', 'argument': {'type': 'Identifier', 'name': 'ex'}}]}], 'orelse': [], 'finalbody': []}
+        catch_body = []
+        #expr = { 'type': 'IfStatement', 'test': { 'type': 'BinaryOperator','left': 'consequent': { 'type': 'BlockStatement', 'body': value['body'] } }
+        alternate = None
+        while len(value['handlers']):
+            handler = value['handlers'].pop()
+            alternate = { 'type': 'IfStatement',
+                          'test': { 'type': 'BinaryExpression',
+                                    'left': identifier('___error'),
+                                    'right': handler['type'],
+                                'operator': 'instanceof',
+                          },
+                          'consequent': { 'type': 'BlockStatement',
+                                          'body': ([{ 'type': 'ExpressionStatement',
+                                                     'expression':
+                                                     { 'type': 'AssignmentExpression',
+                                                       'left': handler['name'],
+                                                       'right': identifier('___error'),
+                                                       'operator': '='}}] if 'name' in handler and handler['name'] else []) +
+                                          handler['body'] },
+                          'alternate': alternate }
+        expr = { 'type': 'TryStatement', 'block': { 'type':'BlockStatement',
+                                                    'body': value['body'] },
+                 'handler': { 'type': 'CatchClause', 'param': identifier('___error'),
+                               'body': {'type': 'BlockStatement',
+                                        'body': [alternate] } },
+                 }
         self.collect_output_statement(expr)
 
     def visit_ExceptHandler(self, node):

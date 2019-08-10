@@ -18,8 +18,10 @@ class Transform1(ast.NodeTransformer):
                                 else:
                                     return node.body;
         return node
-
-
+    def visit_Name(self, node):
+        self.generic_visit(node)
+        if node.id in ('arguments',):
+            node.id = '___' + node.id;
         return node
 
 
