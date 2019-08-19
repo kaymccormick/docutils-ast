@@ -398,8 +398,10 @@ class ValueCollector(ast.NodeVisitor):
         annotation = None
         new_var = False
         check = target
+        class_prop = False
         if target['type'] == 'MemberExpression' and target['object']['type'] == 'ThisExpression':
             check = target['property']
+            class_prop = True
         elif target['type'] == 'Identifier':
             check = target
 
@@ -407,7 +409,11 @@ class ValueCollector(ast.NodeVisitor):
             return (False, False, target)
         n = check['name']
         inclass = filter(lambda x: issubclass(x, ast.ClassDef), map(lambda y: self.in_nodes[y], range(len(self.in_nodes) - 1, 0, -1)))
-        if len(list(inclass)):
+
+        parent_isclass = issubclass(self.in_nodes[-1], ast.ClassDef)
+        if parent_isclass:
+            class_prop = True
+        if len(list(inclass)) and class_prop:
             self.logger.debug(_('in class, create property')) # make sure to check for existence?
             prop = ClassProperty(self.major_element, n, ASTValue(value) if issubclass(self.in_nodes[-1], ast.ClassDef) else None)
             self.logger.debug(_('adding class property %s' % n))
