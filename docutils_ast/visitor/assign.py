@@ -547,7 +547,8 @@ class ValueCollector(ast.NodeVisitor):
     def visit_BinOp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        expr = { 'type': 'BinaryExpression', 'operator': value['op'], 'left': value['left'], 'right': value['right'], 'comments': comments_for(node) }
+        #expr = { 'type': 'BinaryExpression', 'operator': value['op'], 'left': value['left'], 'right': value['right'], 'comments': comments_for(node) }
+        expr = { 'type':'CallExpression', 'callee': {'type': 'MemberExpression','object':{'type': 'Identifier', 'name': 'Py'},'property':{'type':'Identifier','name': 'PyBinOp'}}, 'arguments': [{ 'type': 'StringLiteral', 'value': value['op']}, value['left'], value['right']], 'comments': comments_for(node)}
         self.collect_output_node(expr)
 
     def oldvisit_BinOp(self, node):
