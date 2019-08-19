@@ -113,7 +113,6 @@ class ValueCollector(ast.NodeVisitor):
             self.named_types = named_types
 
         self.top_level= top_level
-        self.logger.debug(_('initializing ValueCollector'))
         self.var_scope = { }
         self.stack= []
         self.context = []
@@ -123,9 +122,6 @@ class ValueCollector(ast.NodeVisitor):
         self.entities = []
 
     def generic_visit(self,  node, callSuper=True, newStack=False):
-        #self.logger.debug(_('generic_visit(%r, %r, %r)',
-        #                  node.__class__.__name__,
-        #                  callSuper, newStack)
         self.in_nodes.append(node.__class__)
         if self.main_node is None:
             self.main_node = node
@@ -184,7 +180,7 @@ class ValueCollector(ast.NodeVisitor):
             try:
                 self.lineno = node.lineno
             except Exception as ex1:
-                print(ex1)
+                pass
             super().visit(node)
         except Exception as ex:
             raise ex
@@ -192,6 +188,7 @@ class ValueCollector(ast.NodeVisitor):
             exit(1)
 
     def visit_Module(self, node):
+        assert self.module
         self.entities.append(self.module)
         self.generic_visit(node)
         self.entities.pop()
@@ -217,6 +214,7 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_ClassDef(self, node):
         container = self.entities[-1]
+        assert container is not None, repr(self.entities)
         elem = container.elems['Class'][node.name]
         self.entities.append(elem)
         name = node.name
@@ -230,8 +228,6 @@ class ValueCollector(ast.NodeVisitor):
         self.entities.pop()
         self.current_namespace = self.namespaces.pop()
         value = self.out_values.pop()
-
-#        self.logger.debug(_('value', value=value))
 
         body = value['body']
         for elem in class_.elems.setdefault('ClassProperty', {}).values():
@@ -248,7 +244,6 @@ class ValueCollector(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         container = self.entities[-1]
-        self.logger.debug(_('container', container=repr(container)))
         if isinstance(container, Class):
             elem = container.elems['Method'][node.name]
         else:
@@ -297,11 +292,10 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         value = self.out_values.pop()
         self.collect_output_node(value['value'])
-        self.logger.debug(_('value', value=value))
+
     def visit_Lambda(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.debug(_('value', value=value))
         if isinstance(value['body'], dict):
             body = value['body'];
         else:
@@ -315,7 +309,6 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         expr= { 'type': 'YieldExpression', 'argument': value['value'] }
         self.collect_output_node(expr)
-        self.logger.debug(_('value', value=value))
 
     def visit_IfExp(self, node):
         self.generic_visit(node)
@@ -338,7 +331,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Assign(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-#        self.logger.debug(_('value', value=value))
         targets = value['targets']
         assign_value = value['value']
         target_nodes = []
@@ -347,11 +339,19 @@ class ValueCollector(ast.NodeVisitor):
         while targets:
             target = targets.pop()
             self.logger.debug(_('target of assignment', node=target))
-            (new_var, class_prop, node) = self.process_target(target, assign_value)
-            if new_var and node:
-                var_decls.append(node)
-            elif not class_prop and node:
-                target_nodes.append(node)
+            if target['type'] == 'ArrayExpression':
+                for elt in target['elements']:
+                    (new_var, class_prop, node) = self.process_target(node, elt, None)
+                    if new_var and node:
+                        var_decls.append(node)
+                    elif not class_prop and node:
+                        target_nodes.append(node)
+            else:
+                (new_var, class_prop, rnode) = self.process_target(node, target, assign_value)
+                if new_var and rnode:
+                    var_decls.append(rnode)
+                elif rnode:
+                    target_nodes.append(rnode)
 
         if issubclass(self.in_nodes[-1], ast.ClassDef):
             pass
@@ -362,7 +362,7 @@ class ValueCollector(ast.NodeVisitor):
                 output_stmts.append({'type': 'VariableDeclaration',
                                   'declarations': [
                                       {'type': 'VariableDeclarator',
-                                       'id': tmp_var, 'init': right }],
+                                       'id': tmp_var, 'init': assign_value }],
                                   'kind': 'const'})
                 for var_decl in var_decls:
                     var_decl['declarations'][0]['init'] = tmp_var
@@ -394,36 +394,26 @@ class ValueCollector(ast.NodeVisitor):
         for stmt in output_stmts:
             self.collect_output_statement(stmt)
 
-        self.logger.debug(_('output statements: %r'% output_stmts))
-
-    def process_target(self, target, value):
+    def process_target(self, node, target, value):
         annotation = None
         new_var = False
         check = target
         if target['type'] == 'MemberExpression' and target['object']['type'] == 'ThisExpression':
             check = target['property']
+        elif target['type'] == 'Identifier':
+            check = target
 
-        if True:
-            n = check['name']
-            if issubclass(self.in_nodes[-1], ast.ClassDef):
-                # assignment is in class body, create property
-                self.logger.debug(_('in class, create property'))
-                prop = ClassProperty(self.major_element, n, ASTValue(value))
-                self.logger.debug(_('adding class property %s' % n))
-                self.major_element.add(prop)
-                self.current_namespace.store_name(n, prop)
-                return (False, True, None)
-            else:
-                var = self.find_var(target)
-                if var is None:
-                    new_var = True
-                    self.register_var(target)
-                    if annotation is not None:
-                        target['typeAnnotation'] = annotation;
-                    result = { 'type': 'VariableDeclaration', 'declarations': [{'type': 'VariableDeclarator', 'id': target }], 'kind': 'let' }
-                    return (True, False, result)
-                if not new_var:
-                    return (False, False, target)
+        if 'name' not in check:
+            return (False, False, target)
+        n = check['name']
+        inclass = filter(lambda x: issubclass(x, ast.ClassDef), map(lambda y: self.in_nodes[y], range(len(self.in_nodes) - 1, 0, -1)))
+        if len(list(inclass)):
+            self.logger.debug(_('in class, create property')) # make sure to check for existence?
+            prop = ClassProperty(self.major_element, n, ASTValue(value) if issubclass(self.in_nodes[-1], ast.ClassDef) else None)
+            self.logger.debug(_('adding class property %s' % n))
+            self.major_element.add(prop)
+            self.current_namespace.store_name(n, prop)
+            return (False, True, target)
         else:
             return (False, False, target)
 
@@ -468,7 +458,6 @@ class ValueCollector(ast.NodeVisitor):
             expr= { 'type': 'Identifier', 'name': camelcase(node.id) if self.do_camelcase and not re.match('__', node.id) else node.id }
             var = self.find_var(expr)
             if var is None:
-                self.logger.debug(_('Registering variable for', node=expr))
                 self.register_var(expr)
         self.collect_output_node(expr)
         self.generic_visit(node, False)
@@ -478,7 +467,6 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         expr = {'type':'MemberExpression','object':value['value'],
                 'property': { 'type': 'Identifier', 'name': value['attr']} }
-        self.logger.debug(_('expression', expr=expr))
         self.collect_output_node(expr)
 
     def oldvisit_Attribute(self, node):
@@ -516,7 +504,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_If(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-#        self.logger.debug(_('value', value=value))
         expr = { 'type': 'IfStatement', 'test': value['test'], 'consequent': { 'type': 'BlockStatement', 'body': value['body'] } }
         if 'orelse' in value and len(value['orelse']):
             expr['alternate'] = { 'type': 'BlockStatement', 'body': value['orelse'] }
@@ -551,7 +538,6 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         value = self.out_values.pop()
         #self.collect_output_node(value['value'])
-        self.logger.debug(_('value', value=value))
         values = value['values']
         left = values.pop(0)
         while len(values):
@@ -561,7 +547,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_BinOp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-#        self.logger.debug(_('value', value=value))
         expr = { 'type': 'BinaryExpression', 'operator': value['op'], 'left': value['left'], 'right': value['right'], 'comments': comments_for(node) }
         self.collect_output_node(expr)
 
@@ -602,7 +587,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Dict(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.debug(_('value', value=value))
         keys =value['keys']
         values = value['values']
         props = []
@@ -616,7 +600,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Call(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.debug(_('value', value=value))
 
         func = value['func']
         expr = {'type': 'CallExpression',
@@ -682,12 +665,10 @@ class ValueCollector(ast.NodeVisitor):
         value = self.out_values.pop()
         expr = { 'type': 'SpreadElement', 'argument': value['value'], 'comments': comments_for(node) }
         self.collect_output_node(expr)
-        self.logger.debug(_('value', value=value))
 
     def visit_Subscript(self, node):
         self.generic_visit(node, True)
         value = self.out_values.pop()
-        self.logger.debug(_('value', value=value))
         if 'slice' in value:
             slice_ = value['slice']
             if 'lower' in slice_:
@@ -811,7 +792,6 @@ class ValueCollector(ast.NodeVisitor):
         self.generic_visit(node)
         value = self.out_values.pop()
         #self.collect_output_node(value['value'])
-        self.logger.debug(_('value', node=ast.dump(node), value=value))
         arg = value['arg']
 
         expr = { 'type': 'Identifier',
@@ -895,7 +875,6 @@ class ValueCollector(ast.NodeVisitor):
     def visit_Try(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
-        self.logger.debug(_('value', value=value))
         # e.g.: <class 'dict'>: {'body': [], 'handlers': [{'type': {'type': 'Identifier', 'name': 'TypeError'}, 'name': 'ex', 'body': [{'type': 'ThrowStatement', 'argument': {'type': 'Identifier', 'name': 'ex'}}]}, {'type': {'type': 'Identifier', 'name': 'IndexError'}, 'name': 'ex', 'body': [{'type': 'ThrowStatement', 'argument': {'type': 'Identifier', 'name': 'ex'}}]}], 'orelse': [], 'finalbody': []}
         catch_body = []
         #expr = { 'type': 'IfStatement', 'test': { 'type': 'BinaryOperator','left': 'consequent': { 'type': 'BlockStatement', 'body': value['body'] } }
@@ -932,7 +911,6 @@ class ValueCollector(ast.NodeVisitor):
         self.collect_output_literal(value)
 
     def do_visit(self, node, *args, **kwargs):
-        self.logger.debug(_('do_visit(%s)' % node_repr(node)))
         r = self.visit(node, *args, **kwargs)
 
     def __repr__(self):
@@ -961,8 +939,6 @@ class ValueCollector(ast.NodeVisitor):
             self.logger.error(_('AST node is invalid', astnode=output_node))
             ex.lineno = self.lineno;
             raise ex
-        self.logger.debug(_('code',code=code))
-
         self.output_nodes[-1].append(output_node)
     def collected_output_nodes(self):
         return self.finished_output_nodes[-1]
