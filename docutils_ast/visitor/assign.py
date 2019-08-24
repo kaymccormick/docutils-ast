@@ -469,26 +469,6 @@ class ValueCollector(ast.NodeVisitor):
                 'property': { 'type': 'Identifier', 'name': value['attr']} }
         self.collect_output_node(expr)
 
-    def oldvisit_Attribute(self, node):
-        v = ValueCollector('attribute.value', True, parent=self)
-        v.do_visit(node.value)
-        object = v.finished_output_nodes[-1].pop()
-        id_name = camelcase(node.attr) if self.do_camelcase and not re.match('__', node.attr) else node.attr
-        if object['type'] == 'ThisExpression':
-            # do we endure we are 'in' a class?
-            assert isinstance(self.major_element, Class), 'major element should be class'
-            if not self.current_namespace.name_exists(id_name):
-                prop = ClassProperty(self.major_element, id_name)
-                self.major_element.add(prop)
-                self.current_namespace.store_name(id_name, prop)
-
-        expr = { 'type': 'MemberExpression',
-                 'object': object,
-                 'property': { 'type': 'Identifier', 'name': id_name },
-                 'comments': comments_for(node) }
-        self.collect_output_node(expr)
-        self.generic_visit(node, False)
-
     def visit_UnaryOp(self, node):
         self.generic_visit(node)
         value = self.out_values.pop()
