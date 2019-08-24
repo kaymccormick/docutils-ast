@@ -55,7 +55,6 @@ def comments_for(node, docstring=None):
     return [{'type': 'CommentBlock', 'value': 'line = %d' % node.lineno }]
 
 class ValueCollector(ast.NodeVisitor):
-    disable_perm = False
     data = None
     context = None
     collected_value = None
@@ -390,7 +389,6 @@ class ValueCollector(ast.NodeVisitor):
                 else:
                     stmt = { 'type': 'ExpressionStatement', 'expression': right }
                 output_stmts.append(stmt)
-                # self.disable_perm = True
         for stmt in output_stmts:
             self.collect_output_statement(stmt)
 
