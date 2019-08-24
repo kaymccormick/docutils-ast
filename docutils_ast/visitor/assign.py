@@ -57,7 +57,6 @@ def comments_for(node, docstring=None):
 class ValueCollector(ast.NodeVisitor):
     collected_value = None
     main_node = None
-    body = None
     stack = None
     in_stmt = False
     do_camelcase = False
@@ -489,30 +488,6 @@ class ValueCollector(ast.NodeVisitor):
             expr['alternate'] = { 'type': 'BlockStatement', 'body': value['orelse'] }
         self.collect_output_node(expr)
 
-
-    def oldvisit_If(self, node):
-        v = ValueCollector('', True, parent=self)
-        v.do_visit(node.test)
-        test = v.finished_output_nodes[-1].pop()
-
-        body= []
-        for stmt in node.body:
-            v2 = ValueCollector('', True, parent=self)
-
-            v2.do_visit(stmt)
-            body.extend(v2.body)
-
-        orelse= []
-        for stmt in node.orelse:
-            v3 = ValueCollector('', True, parent=self)
-            v3.do_visit(stmt)
-            orelse.extend(v3.body)
-
-        expr = { 'type': 'IfStatement', 'test': test, 'consequent':{ 'type': 'BlockStatement', 'body': body } }
-        if len(orelse):
-            expr['alternate'] = { 'type': 'BlockStatement', 'body': orelse }
-        self.cur_node = expr
-        self.collect_output_statement(expr)
 
     def visit_BoolOp(self, node):
         self.generic_visit(node)
