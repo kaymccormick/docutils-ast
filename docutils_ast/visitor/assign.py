@@ -55,7 +55,6 @@ def comments_for(node, docstring=None):
     return [{'type': 'CommentBlock', 'value': 'line = %d' % node.lineno }]
 
 class ValueCollector(ast.NodeVisitor):
-    context = None
     collected_value = None
     main_node = None
     body = None
@@ -113,7 +112,6 @@ class ValueCollector(ast.NodeVisitor):
         self.top_level= top_level
         self.var_scope = { }
         self.stack= []
-        self.context = []
         self.do_camelcase = do_camelcase
         self.name = name
         self.entities = []
