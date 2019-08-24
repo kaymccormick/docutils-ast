@@ -1,3 +1,4 @@
+
 import ast
 
 class Transform1(ast.NodeTransformer):
@@ -20,7 +21,7 @@ class Transform1(ast.NodeTransformer):
         return node
     def visit_Name(self, node):
         self.generic_visit(node)
-        if node.id in ('arguments','new', 'function'):
+        if node.id in ('arguments','new', 'function', 'default'):
             node.id = '___' + node.id;
         return node
 
