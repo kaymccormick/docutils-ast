@@ -57,7 +57,6 @@ def comments_for(node, docstring=None):
 class ValueCollector(ast.NodeVisitor):
     collected_value = None
     main_node = None
-    stack = None
     in_stmt = False
     do_camelcase = False
     collector_level = 0
@@ -110,12 +109,11 @@ class ValueCollector(ast.NodeVisitor):
 
         self.top_level= top_level
         self.var_scope = { }
-        self.stack= []
         self.do_camelcase = do_camelcase
         self.name = name
         self.entities = []
 
-    def generic_visit(self,  node, callSuper=True, newStack=False):
+    def generic_visit(self,  node, callSuper=True):
         self.in_nodes.append(node.__class__)
         if self.main_node is None:
             self.main_node = node
